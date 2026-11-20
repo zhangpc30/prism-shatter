@@ -1,0 +1,4224 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>棱镜狂潮 · PRISM SHATTER — 解压爽游</title>
+<meta name="description" content="零压力、不失败、越玩越上头的连锁粉碎解压小游戏：五声音阶连锁音效、连环爆弹、折射激光、环绕飞刃、黑洞奇点与15种觉醒遗物！" />
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%235cf2ff'/%3E%3Cstop offset='50%25' stop-color='%23ff62c8'/%3E%3Cstop offset='100%25' stop-color='%23ffd452'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='16' fill='%230b0f1f'/%3E%3Cpolygon points='32,8 54,24 46,52 18,52 10,24' fill='url(%23g)' stroke='%23ffffff' stroke-width='2.5'/%3E%3Cpolygon points='32,17 44,27 39,44 25,44 20,27' fill='rgba(255,255,255,0.35)'/%3E%3C/svg%3E" />
+<style>
+  :root {
+    --hud-bg: rgba(14, 18, 34, 0.72);
+    --hud-border: rgba(255, 255, 255, 0.14);
+    --hud-text: #f5f7ff;
+    --hud-sub: rgba(220, 228, 255, 0.68);
+    --accent: #5cf2ff;
+    --accent-2: #ff62c8;
+    --gold: #ffd452;
+    --card-bg: rgba(16, 20, 38, 0.88);
+    --btn-hover: rgba(255, 255, 255, 0.12);
+    --shadow: 0 10px 32px rgba(0, 0, 0, 0.42);
+  }
+
+  body.theme-light {
+    --hud-bg: rgba(255, 252, 248, 0.82);
+    --hud-border: rgba(70, 56, 84, 0.14);
+    --hud-text: #2a2138;
+    --hud-sub: rgba(58, 46, 78, 0.65);
+    --accent: #ff5b9b;
+    --accent-2: #48b8ff;
+    --gold: #f59e0b;
+    --card-bg: rgba(255, 253, 250, 0.94);
+    --btn-hover: rgba(42, 33, 56, 0.08);
+    --shadow: 0 10px 28px rgba(74, 52, 94, 0.14);
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #080b14;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", Roboto, sans-serif;
+    color: var(--hud-text);
+  }
+
+  #gameCanvas {
+    display: block;
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    touch-action: none;
+  }
+
+  body.playing #gameCanvas {
+    cursor: none;
+  }
+
+  /* Fever Screen Edge Glow */
+  #feverBorder {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.35s ease;
+    box-shadow: inset 0 0 70px rgba(255, 98, 200, 0.45), inset 0 0 140px rgba(92, 242, 255, 0.3);
+    z-index: 5;
+  }
+  #feverBorder.active {
+    opacity: 1;
+    animation: feverPulse 0.95s ease-in-out infinite alternate;
+  }
+  @keyframes feverPulse {
+    0% { box-shadow: inset 0 0 55px rgba(255, 196, 61, 0.45), inset 0 0 120px rgba(255, 78, 175, 0.32); }
+    100% { box-shadow: inset 0 0 90px rgba(92, 242, 255, 0.55), inset 0 0 160px rgba(173, 98, 255, 0.38); }
+  }
+
+  /* HUD Layout */
+  .hud {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 14px 18px 16px;
+    transition: opacity 0.35s ease;
+  }
+  .hud.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .hud-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .glass-pill {
+    background: var(--hud-bg);
+    border: 1px solid var(--hud-border);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    pointer-events: auto;
+  }
+
+  /* Top Left: Currency & Rank */
+  .stats-cluster {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 215px;
+  }
+
+  .currency-box {
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 11px;
+  }
+  .currency-gem {
+    width: 30px;
+    height: 30px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--gold), #ff8e42);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    box-shadow: 0 0 16px rgba(255, 208, 72, 0.45);
+    flex-shrink: 0;
+    color: #fff;
+  }
+  .currency-info {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.15;
+  }
+  .currency-value {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+    font-variant-numeric: tabular-nums;
+  }
+  .currency-rate {
+    font-size: 11.5px;
+    color: var(--hud-sub);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 2px;
+  }
+  .prestige-tag {
+    background: linear-gradient(90deg, #ffb830, #ff5ea8);
+    color: #fff;
+    padding: 1px 6px;
+    border-radius: 99px;
+    font-size: 10.5px;
+    font-weight: 700;
+  }
+
+  .rank-box {
+    padding: 8px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .rank-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .rank-title {
+    color: var(--accent);
+  }
+  .rank-bar-bg {
+    width: 100%;
+    height: 6px;
+    border-radius: 99px;
+    background: rgba(128, 136, 168, 0.24);
+    overflow: hidden;
+  }
+  .rank-bar-fill {
+    height: 100%;
+    width: 0%;
+    border-radius: 99px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    transition: width 0.18s ease-out;
+  }
+
+  /* Top Center: Fever & Combo */
+  .center-cluster {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    max-width: 360px;
+    pointer-events: none;
+  }
+
+  .fever-box {
+    width: 100%;
+    padding: 9px 15px 10px;
+    pointer-events: auto;
+  }
+  .fever-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.6px;
+    margin-bottom: 6px;
+  }
+  .fever-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .fever-bar-bg {
+    width: 100%;
+    height: 10px;
+    border-radius: 99px;
+    background: rgba(128, 136, 168, 0.22);
+    overflow: hidden;
+    position: relative;
+  }
+  .fever-bar-fill {
+    height: 100%;
+    width: 0%;
+    border-radius: 99px;
+    background: linear-gradient(90deg, #43e8ff, #a366ff, #ff5eb8, #ffd452);
+    background-size: 200% 100%;
+    animation: gradientSlide 2.2s linear infinite;
+    transition: width 0.1s linear;
+  }
+  .fever-box.is-fever {
+    border-color: rgba(255, 212, 82, 0.72);
+    box-shadow: 0 0 26px rgba(255, 98, 200, 0.42);
+  }
+  .fever-box.is-fever .fever-label {
+    color: var(--gold);
+  }
+
+  @keyframes gradientSlide {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 200% 50%; }
+  }
+
+  .combo-badge {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    padding: 4px 16px;
+    border-radius: 99px;
+    background: var(--hud-bg);
+    border: 1px solid var(--hud-border);
+    backdrop-filter: blur(10px);
+    opacity: 0;
+    transform: translateY(-6px) scale(0.85);
+    transition: opacity 0.18s ease, transform 0.12s cubic-bezier(0.2, 1.4, 0.4, 1);
+    pointer-events: none;
+  }
+  .combo-badge.visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  .combo-badge.pop {
+    transform: translateY(0) scale(1.16);
+  }
+  .combo-num {
+    font-size: 26px;
+    font-weight: 900;
+    font-style: italic;
+    background: linear-gradient(120deg, #fff, var(--accent), var(--gold));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-variant-numeric: tabular-nums;
+  }
+  body.theme-light .combo-num {
+    background: linear-gradient(120deg, #ff4b8b, #8b5cf6, #f59e0b);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .combo-text {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    color: var(--hud-sub);
+  }
+  .combo-mult {
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--gold);
+  }
+
+  /* Top Right: Controls */
+  .controls-cluster {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    pointer-events: auto;
+  }
+
+  .icon-btn {
+    height: 40px;
+    padding: 0 13px;
+    border-radius: 13px;
+    border: 1px solid var(--hud-border);
+    background: var(--hud-bg);
+    color: var(--hud-text);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: transform 0.12s ease, background 0.15s ease, border-color 0.15s ease;
+    box-shadow: var(--shadow);
+  }
+  .icon-btn:hover {
+    background: var(--btn-hover);
+    border-color: var(--accent);
+    transform: translateY(-1px);
+  }
+  .icon-btn:active {
+    transform: scale(0.95);
+  }
+  .icon-btn.active-pill {
+    background: linear-gradient(135deg, rgba(255, 98, 200, 0.28), rgba(92, 242, 255, 0.25));
+    border-color: var(--accent);
+  }
+
+  /* Settings & Theme Popover */
+  .popover {
+    position: fixed;
+    top: 64px;
+    right: 18px;
+    width: 278px;
+    background: var(--card-bg);
+    border: 1px solid var(--hud-border);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 18px;
+    padding: 14px;
+    box-shadow: var(--shadow);
+    z-index: 30;
+    display: none;
+    flex-direction: column;
+    gap: 12px;
+    pointer-events: auto;
+  }
+  .popover.open {
+    display: flex;
+    animation: popIn 0.16s ease-out;
+  }
+  @keyframes popIn {
+    from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .popover-section-title {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.8px;
+    color: var(--hud-sub);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .theme-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 7px;
+  }
+  .theme-chip {
+    padding: 8px 10px;
+    border-radius: 11px;
+    border: 1px solid var(--hud-border);
+    background: rgba(128, 136, 168, 0.1);
+    color: var(--hud-text);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    transition: all 0.15s ease;
+  }
+  .theme-chip:hover {
+    border-color: var(--accent);
+  }
+  .theme-chip.selected {
+    border-color: var(--accent);
+    background: rgba(92, 242, 255, 0.16);
+    box-shadow: 0 0 0 1px var(--accent) inset;
+  }
+  .theme-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .setting-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 4px 0;
+  }
+  .mini-toggle {
+    padding: 5px 11px;
+    border-radius: 99px;
+    border: 1px solid var(--hud-border);
+    background: rgba(128, 136, 168, 0.16);
+    color: var(--hud-text);
+    font-size: 11.5px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .mini-toggle.on {
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: #08101c;
+    border-color: transparent;
+  }
+
+  .stats-mini-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    background: rgba(128, 136, 168, 0.09);
+    border-radius: 12px;
+    padding: 9px 10px;
+    font-size: 11.5px;
+  }
+  .stats-mini-item span {
+    display: block;
+    color: var(--hud-sub);
+    font-size: 10.5px;
+  }
+  .stats-mini-item strong {
+    font-size: 13.5px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .action-btn-full {
+    width: 100%;
+    padding: 9px 12px;
+    border-radius: 11px;
+    border: 1px solid var(--hud-border);
+    background: rgba(128, 136, 168, 0.12);
+    color: var(--hud-text);
+    font-size: 12.5px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .action-btn-full:hover:not(:disabled) {
+    border-color: var(--accent);
+    transform: translateY(-1px);
+  }
+  .action-btn-full.gold-btn {
+    background: linear-gradient(135deg, #ffb732, #ff5e9c);
+    color: #fff;
+    border: none;
+  }
+  .action-btn-full:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  .action-btn-full.danger-btn:hover {
+    border-color: #ff5b6c;
+    color: #ff6b7a;
+  }
+
+  /* Bottom Dock */
+  .hud-bottom {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    position: relative;
+  }
+
+  .hint-toast {
+    position: fixed;
+    bottom: 112px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 7px 16px;
+    border-radius: 99px;
+    background: var(--hud-bg);
+    border: 1px solid var(--hud-border);
+    backdrop-filter: blur(12px);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--hud-sub);
+    pointer-events: none;
+    transition: opacity 0.6s ease;
+    white-space: nowrap;
+    z-index: 12;
+  }
+  .hint-toast.fade {
+    opacity: 0;
+  }
+
+  /* Relic Pending Notification Pill */
+  .relic-pill {
+    position: fixed;
+    top: 112px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 9px 20px;
+    border-radius: 99px;
+    background: linear-gradient(135deg, #ffb830, #ff52a8, #7b5cff);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 800;
+    border: none;
+    box-shadow: 0 6px 28px rgba(255, 92, 168, 0.55);
+    cursor: pointer;
+    pointer-events: auto;
+    display: none;
+    align-items: center;
+    gap: 8px;
+    z-index: 15;
+    animation: relicBounce 1.1s ease-in-out infinite;
+  }
+  .relic-pill.show {
+    display: inline-flex;
+  }
+  @keyframes relicBounce {
+    0%, 100% { transform: translateX(-50%) translateY(0) scale(1); }
+    50% { transform: translateX(-50%) translateY(-4px) scale(1.04); }
+  }
+
+  .upgrade-dock {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 8px;
+    max-width: calc(100vw - 140px);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .upgrade-dock::-webkit-scrollbar { display: none; }
+
+  .upg-card {
+    position: relative;
+    width: 82px;
+    min-width: 76px;
+    padding: 7px 6px 6px;
+    border-radius: 12px;
+    border: 1px solid var(--hud-border);
+    background: rgba(128, 136, 168, 0.08);
+    color: var(--hud-text);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    transition: transform 0.12s ease, border-color 0.15s ease, background 0.15s ease, box-shadow 0.2s ease;
+    text-align: center;
+  }
+  .upg-card:hover {
+    transform: translateY(-3px);
+    background: var(--btn-hover);
+  }
+  .upg-card:active {
+    transform: scale(0.95);
+  }
+  .upg-card.affordable {
+    border-color: rgba(92, 242, 255, 0.65);
+    background: linear-gradient(180deg, rgba(92, 242, 255, 0.16), rgba(163, 102, 255, 0.1));
+    box-shadow: 0 0 14px rgba(92, 242, 255, 0.24);
+  }
+  body.theme-light .upg-card.affordable {
+    border-color: rgba(255, 91, 155, 0.65);
+    background: linear-gradient(180deg, rgba(255, 91, 155, 0.14), rgba(72, 184, 255, 0.08));
+    box-shadow: 0 0 14px rgba(255, 91, 155, 0.2);
+  }
+  .upg-card.maxed {
+    border-color: rgba(255, 212, 82, 0.55);
+    opacity: 0.85;
+  }
+  .upg-card:not(.affordable):not(.maxed) {
+    opacity: 0.62;
+  }
+
+  .upg-key {
+    position: absolute;
+    top: 4px;
+    left: 5px;
+    font-size: 9.5px;
+    font-weight: 800;
+    color: var(--hud-sub);
+    opacity: 0.8;
+  }
+  .upg-lv {
+    position: absolute;
+    top: 4px;
+    right: 5px;
+    font-size: 9.5px;
+    font-weight: 800;
+    color: var(--accent);
+  }
+  .upg-icon {
+    font-size: 20px;
+    line-height: 1.15;
+    margin-top: 3px;
+  }
+  .upg-name {
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .upg-cost {
+    font-size: 10.5px;
+    font-weight: 800;
+    color: var(--gold);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Tooltip */
+  #upgTooltip {
+    position: fixed;
+    bottom: 108px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--card-bg);
+    border: 1px solid var(--hud-border);
+    backdrop-filter: blur(16px);
+    padding: 8px 14px;
+    border-radius: 12px;
+    font-size: 12px;
+    box-shadow: var(--shadow);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.14s ease;
+    z-index: 25;
+    text-align: center;
+    max-width: 340px;
+  }
+  #upgTooltip.show {
+    opacity: 1;
+  }
+  #upgTooltip strong {
+    color: var(--accent);
+  }
+
+  /* Supernova Orb & Buy-All */
+  .side-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    pointer-events: auto;
+  }
+
+  .nova-btn {
+    position: relative;
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    border: 2px solid var(--hud-border);
+    background: var(--hud-bg);
+    color: var(--hud-text);
+    cursor: pointer;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(12px);
+    transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+  .nova-fill {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 0%;
+    background: linear-gradient(180deg, rgba(255, 98, 200, 0.72), rgba(92, 242, 255, 0.85));
+    transition: height 0.15s ease-out;
+    z-index: 0;
+  }
+  .nova-content {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.1;
+  }
+  .nova-icon { font-size: 21px; }
+  .nova-label { font-size: 10px; font-weight: 800; margin-top: 2px; }
+  .nova-key { font-size: 9px; opacity: 0.75; font-weight: 700; }
+
+  .nova-btn.ready {
+    border-color: #ffd452;
+    box-shadow: 0 0 28px rgba(255, 118, 210, 0.65), 0 0 12px rgba(255, 212, 82, 0.7);
+    animation: novaReady 1.2s ease-in-out infinite;
+  }
+  .nova-btn.ready:hover {
+    transform: scale(1.08);
+  }
+  @keyframes novaReady {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.06); }
+  }
+
+  .buy-all-btn {
+    height: 54px;
+    padding: 0 12px;
+    border-radius: 14px;
+    border: 1px solid var(--hud-border);
+    background: var(--hud-bg);
+    color: var(--hud-text);
+    backdrop-filter: blur(12px);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    font-size: 11px;
+    font-weight: 800;
+    box-shadow: var(--shadow);
+    transition: all 0.14s ease;
+    opacity: 0.55;
+  }
+  .buy-all-btn.can-buy {
+    opacity: 1;
+    border-color: var(--gold);
+    background: linear-gradient(135deg, rgba(255, 208, 72, 0.25), rgba(255, 98, 200, 0.2));
+  }
+  .buy-all-btn.can-buy:hover {
+    transform: translateY(-2px);
+  }
+
+  /* Start Overlay */
+  #startOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at center, rgba(8, 11, 22, 0.18), rgba(8, 11, 22, 0.72));
+    transition: opacity 0.45s ease, transform 0.45s ease;
+    pointer-events: auto;
+    padding: 20px;
+    text-align: center;
+  }
+  #startOverlay.gone {
+    opacity: 0;
+    transform: scale(1.05);
+    pointer-events: none;
+  }
+  .start-card {
+    background: rgba(13, 17, 32, 0.74);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    backdrop-filter: blur(22px);
+    -webkit-backdrop-filter: blur(22px);
+    border-radius: 28px;
+    padding: 36px 42px 34px;
+    max-width: 470px;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
+  }
+  .start-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 99px;
+    background: rgba(92, 242, 255, 0.14);
+    border: 1px solid rgba(92, 242, 255, 0.35);
+    color: #7bf4ff;
+    font-size: 11.5px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    margin-bottom: 14px;
+  }
+  .start-title {
+    font-size: 38px;
+    font-weight: 900;
+    letter-spacing: 1.5px;
+    background: linear-gradient(120deg, #ffffff 10%, #72f4ff 48%, #ff77cb 85%, #ffd966 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 10px;
+  }
+  .start-sub {
+    font-size: 14.5px;
+    color: rgba(230, 236, 255, 0.78);
+    line-height: 1.65;
+    margin-bottom: 24px;
+  }
+  .start-features {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 26px;
+  }
+  .feat-chip {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 11px;
+    border-radius: 99px;
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(242, 246, 255, 0.88);
+  }
+  .start-btn {
+    border: none;
+    border-radius: 99px;
+    padding: 15px 46px;
+    font-size: 17px;
+    font-weight: 900;
+    letter-spacing: 1.5px;
+    color: #090e1c;
+    background: linear-gradient(120deg, #62f4ff, #ffe066, #ff6ec7);
+    background-size: 200% 200%;
+    animation: gradientSlide 3s linear infinite;
+    cursor: pointer;
+    box-shadow: 0 10px 36px rgba(98, 244, 255, 0.42);
+    transition: transform 0.15s ease, box-shadow 0.2s ease;
+  }
+  .start-btn:hover {
+    transform: translateY(-2px) scale(1.04);
+    box-shadow: 0 14px 44px rgba(255, 110, 199, 0.55);
+  }
+  .start-btn:active {
+    transform: scale(0.97);
+  }
+  .start-theme-row {
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .start-theme-btn {
+    padding: 6px 12px;
+    border-radius: 99px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(240, 244, 255, 0.85);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s ease;
+  }
+  .start-theme-btn.selected {
+    border-color: #72f4ff;
+    background: rgba(114, 244, 255, 0.2);
+    color: #fff;
+  }
+
+  /* Relic Awakening Modal */
+  #relicModal {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(6, 9, 18, 0.62);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    padding: 20px;
+  }
+  #relicModal.open {
+    display: flex;
+    animation: fadeIn 0.2s ease-out;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  .relic-panel {
+    max-width: 780px;
+    width: 100%;
+    text-align: center;
+  }
+  .relic-header {
+    margin-bottom: 22px;
+  }
+  .relic-kicker {
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    color: var(--gold);
+    margin-bottom: 6px;
+  }
+  .relic-title {
+    font-size: 28px;
+    font-weight: 900;
+    color: #fff;
+    text-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  }
+  .relic-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+  @media (max-width: 680px) {
+    .relic-cards { grid-template-columns: 1fr; }
+    .stats-cluster { min-width: 155px; }
+    .currency-value { font-size: 17px; }
+    .upg-card { width: 68px; min-width: 66px; }
+  }
+  .relic-card {
+    background: var(--card-bg);
+    border: 1.5px solid var(--hud-border);
+    border-radius: 22px;
+    padding: 22px 18px 20px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    transition: transform 0.16s cubic-bezier(0.2, 1.4, 0.4, 1), border-color 0.16s ease, box-shadow 0.2s ease;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+    position: relative;
+    color: var(--hud-text);
+  }
+  .relic-card:hover {
+    transform: translateY(-7px) scale(1.02);
+    border-color: var(--accent);
+    box-shadow: 0 20px 48px rgba(92, 242, 255, 0.28);
+  }
+  .relic-card.rarity-epic {
+    border-color: rgba(185, 108, 255, 0.55);
+  }
+  .relic-card.rarity-legend {
+    border-color: rgba(255, 206, 72, 0.72);
+    box-shadow: 0 16px 42px rgba(255, 196, 61, 0.22);
+  }
+  .relic-rarity {
+    font-size: 10.5px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    padding: 3px 10px;
+    border-radius: 99px;
+    background: rgba(92, 242, 255, 0.16);
+    color: var(--accent);
+  }
+  .rarity-epic .relic-rarity {
+    background: rgba(185, 108, 255, 0.2);
+    color: #d49bff;
+  }
+  .rarity-legend .relic-rarity {
+    background: rgba(255, 206, 72, 0.22);
+    color: #ffd452;
+  }
+  .relic-icon {
+    font-size: 42px;
+    line-height: 1.1;
+    margin: 4px 0;
+  }
+  .relic-name {
+    font-size: 17px;
+    font-weight: 800;
+  }
+  .relic-desc {
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: var(--hud-sub);
+  }
+  .relic-stack {
+    margin-top: auto;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--gold);
+  }
+
+  /* Banner Announcement */
+  #bannerToast {
+    position: fixed;
+    top: 32%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.75);
+    pointer-events: none;
+    z-index: 35;
+    font-size: 38px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    text-align: center;
+    opacity: 0;
+    text-shadow: 0 6px 32px rgba(0, 0, 0, 0.5);
+    transition: opacity 0.25s ease, transform 0.28s cubic-bezier(0.2, 1.4, 0.4, 1);
+  }
+  #bannerToast.show {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  .banner-sub {
+    display: block;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    margin-top: 4px;
+    opacity: 0.9;
+  }
+
+  .relic-build-strip {
+    display: none;
+    flex-wrap: wrap;
+    gap: 5px;
+    max-width: 235px;
+    pointer-events: auto;
+  }
+  .relic-build-strip.has-relics {
+    display: flex;
+  }
+  .relic-mini-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 3px 7px;
+    border-radius: 99px;
+    background: var(--hud-bg);
+    border: 1px solid var(--hud-border);
+    backdrop-filter: blur(10px);
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--gold);
+  }
+</style>
+</head>
+<body>
+
+<canvas id="gameCanvas"></canvas>
+<div id="feverBorder"></div>
+
+<!-- Top / Bottom Game HUD -->
+<div class="hud hidden" id="gameHud">
+  <div class="hud-top">
+    <!-- Left: Shards & Rank -->
+    <div class="stats-cluster">
+      <div class="glass-pill currency-box">
+        <div class="currency-gem">✦</div>
+        <div class="currency-info">
+          <div class="currency-value" id="shardsDisplay">0</div>
+          <div class="currency-rate">
+            <span id="rateDisplay">+0/s</span>
+            <span class="prestige-tag" id="prestigeBadge" style="display:none;">飞升 I</span>
+            <span class="prestige-tag" id="sandboxBadge" style="display:none;background:linear-gradient(90deg,#3be8b0,#3b9eff);">极乐沙盒</span>
+          </div>
+        </div>
+      </div>
+      <div class="glass-pill rank-box">
+        <div class="rank-header">
+          <span id="rankLabel">LV.1</span>
+          <span class="rank-title" id="rankTitle">微光初醒</span>
+        </div>
+        <div class="rank-bar-bg">
+          <div class="rank-bar-fill" id="rankBarFill"></div>
+        </div>
+      </div>
+      <div class="relic-build-strip" id="relicBuildStrip"></div>
+    </div>
+
+    <!-- Center: Fever & Combo -->
+    <div class="center-cluster">
+      <div class="glass-pill fever-box" id="feverBox">
+        <div class="fever-top">
+          <span class="fever-label" id="feverLabel">⚡ 狂热充能 FEVER</span>
+          <span id="feverPct">0%</span>
+        </div>
+        <div class="fever-bar-bg">
+          <div class="fever-bar-fill" id="feverBarFill"></div>
+        </div>
+      </div>
+      <div class="combo-badge" id="comboBadge">
+        <span class="combo-num" id="comboNum">×12</span>
+        <span class="combo-text">COMBO</span>
+        <span class="combo-mult" id="comboMult">1.5x</span>
+      </div>
+    </div>
+
+    <!-- Right: Controls -->
+    <div class="controls-cluster">
+      <button class="icon-btn" id="sandboxQuickBtn" title="一键满级体验无双爽感">⚡ 爽玩沙盒</button>
+      <button class="icon-btn" id="soundBtn" title="开关音效">🔊</button>
+      <button class="icon-btn" id="menuBtn" title="主题与设置">🎨 主题 / 设置</button>
+    </div>
+  </div>
+
+  <!-- Pending Relic Button -->
+  <button class="relic-pill" id="relicPendingBtn">✨ 觉醒遗物已就绪！点击三选一 (R)</button>
+
+  <!-- Upgrade Tooltip -->
+  <div id="upgTooltip"></div>
+  <div class="hint-toast" id="hintToast">✨ 滑动鼠标即可粉碎晶块 · 点击/长按释放震荡波 · 空格键星爆清屏 · 1-8 快捷升级</div>
+
+  <!-- Bottom Dock -->
+  <div class="hud-bottom">
+    <div class="glass-pill upgrade-dock" id="upgradeDock"></div>
+    <div class="side-actions">
+      <button class="buy-all-btn" id="buyAllBtn" title="一键购买当前可升级项目 (B)">
+        <span style="font-size:15px;">⚡</span>
+        <span>一键升(B)</span>
+      </button>
+      <button class="nova-btn" id="novaBtn" title="星爆清屏终结技 (Space)">
+        <div class="nova-fill" id="novaFill"></div>
+        <div class="nova-content">
+          <span class="nova-icon">🌟</span>
+          <span class="nova-label" id="novaPct">0%</span>
+          <span class="nova-key">SPACE</span>
+        </div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Settings / Theme Popover -->
+<div class="popover" id="settingsPopover">
+  <div>
+    <div class="popover-section-title">手感与视听主题</div>
+    <div class="theme-grid" id="popoverThemeGrid"></div>
+  </div>
+  <div>
+    <div class="popover-section-title">手感选项</div>
+    <div class="setting-row">
+      <span>屏幕震动反馈</span>
+      <button class="mini-toggle on" id="toggleShakeBtn">开启</button>
+    </div>
+    <div class="setting-row">
+      <span>伤害/收益数字</span>
+      <button class="mini-toggle on" id="toggleNumsBtn">开启</button>
+    </div>
+    <div class="setting-row">
+      <span>升级弹窗自动暂停</span>
+      <button class="mini-toggle on" id="toggleAutoRelicBtn">开启</button>
+    </div>
+  </div>
+  <div>
+    <div class="popover-section-title">本次解压统计</div>
+    <div class="stats-mini-grid">
+      <div class="stats-mini-item"><span>累计粉碎</span><strong id="statShattered">0</strong></div>
+      <div class="stats-mini-item"><span>最高连击</span><strong id="statMaxCombo">0</strong></div>
+      <div class="stats-mini-item"><span>狂热次数</span><strong id="statFevers">0</strong></div>
+      <div class="stats-mini-item"><span>已获遗物</span><strong id="statRelics">0</strong></div>
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:7px;">
+    <button class="action-btn-full gold-btn" id="prestigeBtn" disabled>✦ 超频飞升（需达到 LV.8）</button>
+    <button class="action-btn-full danger-btn" id="resetBtn">重置当前存档</button>
+  </div>
+</div>
+
+<!-- Relic Awakening Modal -->
+<div id="relicModal">
+  <div class="relic-panel">
+    <div class="relic-header">
+      <div class="relic-kicker">✦ 境界跃迁 · AWAKENING ✦</div>
+      <div class="relic-title" id="relicModalTitle">选择一项觉醒遗物，爽感翻倍！</div>
+    </div>
+    <div class="relic-cards" id="relicCardsContainer"></div>
+  </div>
+</div>
+
+<!-- Center Dynamic Banner -->
+<div id="bannerToast"></div>
+
+<!-- Welcome Start Overlay -->
+<div id="startOverlay">
+  <div class="start-card">
+    <div class="start-badge">ZEN · CHAIN REACTION · OVERDRIVE</div>
+    <div class="start-title">棱镜狂潮</div>
+    <div class="start-sub">
+      零压力、不失败、越玩越上头的连锁粉碎解压游。<br/>
+      指尖滑过即碎裂成五声音阶光雨，连环爆弹、折射激光、环绕飞刃与黑洞奇点层层叠加！
+    </div>
+    <div class="start-features">
+      <span class="feat-chip">🎵 音阶连锁音效</span>
+      <span class="feat-chip">⚡ 闪电激光清屏</span>
+      <span class="feat-chip">🌀 黑洞引力爆破</span>
+      <span class="feat-chip">✨ 15种觉醒遗物</span>
+    </div>
+    <button class="start-btn" id="startBtn">点击引爆 · 开始解压</button>
+    <div class="start-theme-row" id="startThemeRow"></div>
+  </div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  /* ============================================================
+   * 1. THEMES & PALETTES (4 distinct tactile & audio moods)
+   * ============================================================ */
+  const THEMES = {
+    prism: {
+      id: 'prism',
+      name: '琉璃星穹',
+      light: false,
+      dot: 'linear-gradient(135deg,#5cf2ff,#ff62c8)',
+      bgInner: '#131934',
+      bgOuter: '#070913',
+      gridColor: 'rgba(135, 165, 255, 0.065)',
+      palette: ['#5cf2ff', '#ff6ec7', '#a87bff', '#ffd659', '#4ef5b8', '#ff8b66'],
+      bombColor: '#ff4f6d',
+      prismColor: '#7af7ff',
+      vortexColor: '#c06bff',
+      geodeColor: '#ffcf48',
+      cometColor: '#ffe77a',
+      auraColor: '#66f3ff',
+      blend: 'lighter',
+      shapeMode: 'crystal',
+      synth: 'prism'
+    },
+    bubble: {
+      id: 'bubble',
+      name: '气泡糖果',
+      light: true,
+      dot: 'linear-gradient(135deg,#ff7eb6,#65d6ff)',
+      bgInner: '#fffaf5',
+      bgOuter: '#f1e7f2',
+      gridColor: 'rgba(130, 96, 160, 0.065)',
+      palette: ['#ff6fa5', '#4cc3ff', '#a87dff', '#ffad42', '#3bd6a4', '#ff7b7b'],
+      bombColor: '#ff4d6d',
+      prismColor: '#25b8ff',
+      vortexColor: '#965bff',
+      geodeColor: '#f59e0b',
+      cometColor: '#f97316',
+      auraColor: '#ff5b9b',
+      blend: 'source-over',
+      shapeMode: 'bubble',
+      synth: 'bubble'
+    },
+    cyber: {
+      id: 'cyber',
+      name: '赛博霓虹',
+      light: false,
+      dot: 'linear-gradient(135deg,#00ffaa,#ff0099)',
+      bgInner: '#110a24',
+      bgOuter: '#04040a',
+      gridColor: 'rgba(0, 255, 204, 0.07)',
+      palette: ['#00ffd5', '#ff1f9d', '#ffe600', '#38a3ff', '#b74dff', '#ff5e3a'],
+      bombColor: '#ff2457',
+      prismColor: '#00f6ff',
+      vortexColor: '#d43dff',
+      geodeColor: '#ffe140',
+      cometColor: '#fff066',
+      auraColor: '#00ffd5',
+      blend: 'lighter',
+      shapeMode: 'diamond',
+      synth: 'cyber'
+    },
+    jade: {
+      id: 'jade',
+      name: '翡翠金箔',
+      light: false,
+      dot: 'linear-gradient(135deg,#3fe3a8,#f5c852)',
+      bgInner: '#0e2420',
+      bgOuter: '#050e0c',
+      gridColor: 'rgba(245, 200, 82, 0.065)',
+      palette: ['#4be8b0', '#f7cf59', '#ff7d6b', '#7be3e8', '#d4f288', '#ffb35c'],
+      bombColor: '#ff594f',
+      prismColor: '#88fff0',
+      vortexColor: '#e8b948',
+      geodeColor: '#ffd866',
+      cometColor: '#ffea8a',
+      auraColor: '#f7cf59',
+      blend: 'lighter',
+      shapeMode: 'hex',
+      synth: 'jade'
+    }
+  };
+
+  /* ============================================================
+   * 2. PROCEDURAL WEB AUDIO ENGINE (Polyphony-safe & Musical!)
+   * ============================================================ */
+  class SoundEngine {
+    constructor() {
+      this.ctx = null;
+      this.master = null;
+      this.comp = null;
+      this.enabled = true;
+      this.themeSynth = 'prism';
+      this.scale = [
+        523.25, 587.33, 659.25, 783.99, 880.00,
+        1046.50, 1174.66, 1318.51, 1567.98, 1760.00, 2093.00
+      ];
+      this.lastTime = { pop: 0, tick: 0, magnet: 0, lightning: 0, laser: 0, bomb: 0 };
+      this.feverBeatTimer = 0;
+      this.feverStep = 0;
+    }
+
+    init() {
+      if (this.ctx) {
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+        return;
+      }
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      this.ctx = new AC();
+      this.comp = this.ctx.createDynamicsCompressor();
+      this.comp.threshold.value = -16;
+      this.comp.knee.value = 18;
+      this.comp.ratio.value = 6;
+      this.comp.attack.value = 0.003;
+      this.comp.release.value = 0.12;
+
+      this.master = this.ctx.createGain();
+      this.master.gain.value = 0.42;
+
+      this.master.connect(this.comp);
+      this.comp.connect(this.ctx.destination);
+    }
+
+    ready() {
+      if (!this.enabled) return false;
+      if (!this.ctx) this.init();
+      if (!this.ctx || this.ctx.state !== 'running') return false;
+      return true;
+    }
+
+    playShatter(combo = 1, isCrit = false, isBig = false) {
+      if (!this.ready()) return;
+      const now = this.ctx.currentTime;
+      if (now - this.lastTime.pop < 0.024) return;
+      this.lastTime.pop = now;
+
+      const idx = Math.min(this.scale.length - 1, Math.floor((combo - 1) % this.scale.length));
+      const octaveShift = combo > 25 ? 1.12 : 1.0;
+      const baseFreq = this.scale[idx] * (isBig ? 0.5 : 1) * octaveShift * (0.985 + Math.random() * 0.03);
+
+      const g = this.ctx.createGain();
+      g.connect(this.master);
+
+      if (this.themeSynth === 'bubble') {
+        // Juicy upward-bending bubble pop!
+        const osc = this.ctx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(baseFreq * 0.62, now);
+        osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.65, now + 0.055);
+        g.gain.setValueAtTime(0.001, now);
+        g.gain.linearRampToValueAtTime(isCrit ? 0.28 : 0.22, now + 0.007);
+        g.gain.exponentialRampToValueAtTime(0.0008, now + 0.095);
+        osc.connect(g);
+        osc.start(now);
+        osc.stop(now + 0.1);
+      } else if (this.themeSynth === 'cyber') {
+        // Crisp synth pluck
+        const osc = this.ctx.createOscillator();
+        const filt = this.ctx.createBiquadFilter();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(baseFreq, now);
+        filt.type = 'lowpass';
+        filt.frequency.setValueAtTime(baseFreq * 5, now);
+        filt.frequency.exponentialRampToValueAtTime(baseFreq * 0.8, now + 0.12);
+        g.gain.setValueAtTime(0.001, now);
+        g.gain.linearRampToValueAtTime(isCrit ? 0.18 : 0.13, now + 0.004);
+        g.gain.exponentialRampToValueAtTime(0.0008, now + 0.14);
+        osc.connect(filt);
+        filt.connect(g);
+        osc.start(now);
+        osc.stop(now + 0.15);
+      } else if (this.themeSynth === 'jade') {
+        // Plucked guzheng / kalimba chime
+        const osc1 = this.ctx.createOscillator();
+        const osc2 = this.ctx.createOscillator();
+        osc1.type = 'triangle';
+        osc2.type = 'sine';
+        osc1.frequency.setValueAtTime(baseFreq, now);
+        osc2.frequency.setValueAtTime(baseFreq * 2, now);
+        const g2 = this.ctx.createGain();
+        g2.gain.setValueAtTime(0.35, now);
+        g2.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+        g.gain.setValueAtTime(0.001, now);
+        g.gain.linearRampToValueAtTime(isCrit ? 0.24 : 0.19, now + 0.005);
+        g.gain.exponentialRampToValueAtTime(0.0008, now + 0.26);
+        osc1.connect(g);
+        osc2.connect(g2);
+        g2.connect(g);
+        osc1.start(now);
+        osc2.start(now);
+        osc1.stop(now + 0.27);
+        osc2.stop(now + 0.15);
+      } else {
+        // Default: Crisp glass crystal marimba + bell overtone
+        const osc1 = this.ctx.createOscillator();
+        const osc2 = this.ctx.createOscillator();
+        osc1.type = 'sine';
+        osc2.type = 'triangle';
+        osc1.frequency.setValueAtTime(baseFreq, now);
+        osc2.frequency.setValueAtTime(baseFreq * 2.756, now); // crystalline glass partial
+        const overGain = this.ctx.createGain();
+        overGain.gain.setValueAtTime(isCrit ? 0.22 : 0.13, now);
+        overGain.gain.exponentialRampToValueAtTime(0.001, now + 0.075);
+
+        g.gain.setValueAtTime(0.001, now);
+        g.gain.linearRampToValueAtTime(isCrit ? 0.24 : 0.18, now + 0.004);
+        g.gain.exponentialRampToValueAtTime(0.0008, now + 0.19);
+
+        osc1.connect(g);
+        osc2.connect(overGain);
+        overGain.connect(g);
+        osc1.start(now);
+        osc2.start(now);
+        osc1.stop(now + 0.2);
+        osc2.stop(now + 0.085);
+      }
+    }
+
+    playHitTick() {
+      if (!this.ready()) return;
+      const now = this.ctx.currentTime;
+      if (now - this.lastTime.tick < 0.032) return;
+      this.lastTime.tick = now;
+      const osc = this.ctx.createOscillator();
+      const g = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(320 + Math.random() * 140, now);
+      osc.frequency.exponentialRampToValueAtTime(140, now + 0.03);
+      g.gain.setValueAtTime(0.09, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.035);
+      osc.connect(g);
+      g.connect(this.master);
+      osc.start(now);
+      osc.stop(now + 0.04);
+    }
+
+    playMagnetTick(combo = 1) {
+      if (!this.ready()) return;
+      const now = this.ctx.currentTime;
+      if (now - this.lastTime.magnet < 0.042) return;
+      this.lastTime.magnet = now;
+      const osc = this.ctx.createOscillator();
+      const g = this.ctx.createGain();
+      osc.type = 'sine';
+      const f = 920 + ((combo * 47) % 680);
+      osc.frequency.setValueAtTime(f, now);
+      osc.frequency.exponentialRampToValueAtTime(f * 1.25, now + 0.03);
+      g.gain.setValueAtTime(0.055, now);
+      g.gain.exponentialRampToValueAtTime(0.0008, now + 0.038);
+      osc.connect(g);
+      g.connect(this.master);
+      osc.start(now);
+      osc.stop(now + 0.042);
+    }
+
+    playBomb(power = 1) {
+      if (!this.ready()) return;
+      const now = this.ctx.currentTime;
+      if (now - this.lastTime.bomb < 0.045) return;
+      this.lastTime.bomb = now;
+
+      // Sub bass punch
+      const osc = this.ctx.createOscillator();
+      const g = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(145 * Math.min(1.2, power), now);
+      osc.frequency.exponentialRampToValueAtTime(34, now + 0.28);
+      g.gain.setValueAtTime(0.38, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.31);
+      osc.connect(g);
+      g.connect(this.master);
+      osc.start(now);
+      osc.stop(now + 0.32);
+
+      // Filtered shimmer crackle
+      const bufSize = Math.floor(this.ctx.sampleRate * 0.14);
+      const buf = this.ctx.createBuffer(1, bufSize, this.ctx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufSize, 1.8);
+      const noise = this.ctx.createBufferSource();
+      noise.buffer = buf;
+      const filt = this.ctx.createBiquadFilter();
+      filt.type = 'bandpass';
+      filt.frequency.setValueAtTime(950, now);
+      filt.Q.value = 1.2;
+      const ng = this.ctx.createGain();
+      ng.gain.setValueAtTime(0.18, now);
+      ng.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+      noise.connect(filt);
+      filt.connect(ng);
+      ng.connect(this.master);
+      noise.start(now);
+    }
+
+    playLightning() {
+      if (!this.ready()) return;
+      const now = this.ctx.currentTime;
+      if (now - this.lastTime.lightning < 0.055) return;
+      this.lastTime.lightning = now;
+      const osc = this.ctx.createOscillator();
+      const g = this.ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(1600 + Math.random() * 500, now);
+      osc.frequency.exponentialRampToValueAtTime(420, now + 0.07);
+      const filt = this.ctx.createBiquadFilter();
+      filt.type = 'highpass';
+      filt.frequency.value = 700;
+      g.gain.setValueAtTime(0.075, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.075);
+      osc.connect(filt);
+      filt.connect(g);
+      g.connect(this.master);
+      osc.start(now);
+      osc.stop(now + 0.08);
+    }
+
+    playLaser() {
+      if (!this.ready()) return;
+      const now = this.ctx.currentTime;
+      if (now - this.lastTime.laser < 0.06) return;
+      this.lastTime.laser = now;
+      const osc = this.ctx.createOscillator();
+      const g = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(1480, now);
+      osc.frequency.exponentialRampToValueAtTime(520, now + 0.16);
+      g.gain.setValueAtTime(0.16, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+      osc.connect(g);
+      g.connect(this.master);
+      osc.start(now);
+      osc.stop(now + 0.19);
+    }
+
+    playChord(notes = [523.25, 659.25, 783.99, 1046.5], dur = 0.32, vol = 0.13) {
+      if (!this.ready()) return;
+      const now = this.ctx.currentTime;
+      notes.forEach((f, idx) => {
+        const osc = this.ctx.createOscillator();
+        const g = this.ctx.createGain();
+        osc.type = 'triangle';
+        const t = now + idx * 0.032;
+        osc.frequency.setValueAtTime(f, t);
+        g.gain.setValueAtTime(0.001, t);
+        g.gain.linearRampToValueAtTime(vol, t + 0.015);
+        g.gain.exponentialRampToValueAtTime(0.0008, t + dur);
+        osc.connect(g);
+        g.connect(this.master);
+        osc.start(t);
+        osc.stop(t + dur + 0.02);
+      });
+    }
+
+    playUpgrade() {
+      this.playChord([523.25, 659.25, 783.99, 987.77, 1318.5], 0.24, 0.11);
+    }
+
+    playFeverStart() {
+      this.playChord([261.63, 392.00, 523.25, 659.25, 783.99, 1046.5], 0.55, 0.14);
+    }
+
+    playSupernova() {
+      if (!this.ready()) return;
+      const now = this.ctx.currentTime;
+      // Deep drop + rising shimmer chord
+      const sub = this.ctx.createOscillator();
+      const sg = this.ctx.createGain();
+      sub.type = 'sine';
+      sub.frequency.setValueAtTime(190, now);
+      sub.frequency.exponentialRampToValueAtTime(28, now + 0.65);
+      sg.gain.setValueAtTime(0.45, now);
+      sg.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+      sub.connect(sg);
+      sg.connect(this.master);
+      sub.start(now);
+      sub.stop(now + 0.72);
+      this.playChord([523.25, 659.25, 783.99, 1046.5, 1318.5, 1567.98], 0.65, 0.13);
+    }
+
+    tickFeverMusic(dt, isFever) {
+      if (!isFever || !this.ready()) {
+        this.feverBeatTimer = 0;
+        return;
+      }
+      this.feverBeatTimer += dt;
+      const stepTime = 0.22; // ~136 BPM eighth notes
+      if (this.feverBeatTimer >= stepTime) {
+        this.feverBeatTimer -= stepTime;
+        const bassPattern = [130.81, 130.81, 164.81, 196.00, 146.83, 146.83, 196.00, 220.00];
+        const arpPattern = [523.25, 659.25, 783.99, 1046.5, 880.0, 783.99, 659.25, 783.99];
+        const s = this.feverStep % 8;
+        this.feverStep++;
+        const now = this.ctx.currentTime;
+
+        // Soft warm rhythmic pulse
+        const bOsc = this.ctx.createOscillator();
+        const bG = this.ctx.createGain();
+        bOsc.type = 'sine';
+        bOsc.frequency.setValueAtTime(bassPattern[s], now);
+        bG.gain.setValueAtTime(0.09, now);
+        bG.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+        bOsc.connect(bG);
+        bG.connect(this.master);
+        bOsc.start(now);
+        bOsc.stop(now + 0.19);
+
+        // Sparkling high arpeggio note
+        const aOsc = this.ctx.createOscillator();
+        const aG = this.ctx.createGain();
+        aOsc.type = 'triangle';
+        aOsc.frequency.setValueAtTime(arpPattern[s], now);
+        aG.gain.setValueAtTime(0.045, now);
+        aG.gain.exponentialRampToValueAtTime(0.0008, now + 0.15);
+        aOsc.connect(aG);
+        aG.connect(this.master);
+        aOsc.start(now);
+        aOsc.stop(now + 0.16);
+      }
+    }
+  }
+
+  /* ============================================================
+   * 3. UPGRADES, RELICS & RANKS DATA
+   * ============================================================ */
+  const UPGRADES = [
+    {
+      id: 'aura', key: '1', icon: '⭕', name: '光环范围',
+      max: 15, baseCost: 15, mult: 1.52,
+      desc: (lv) => `扩大滑割光环与磁吸半径（当前 ${Math.round(54 + lv * 12)}px）`
+    },
+    {
+      id: 'pulse', key: '2', icon: '⚡', name: '粉碎频率',
+      max: 15, baseCost: 20, mult: 1.55,
+      desc: (lv) => `提升切割频率与单次威力（当前威力 ${Math.round((1 + lv * 0.55) * 10) / 10}x）`
+    },
+    {
+      id: 'chain', key: '3', icon: '🌩️', name: '连锁闪电',
+      max: 12, baseCost: 35, mult: 1.62,
+      desc: (lv) => lv === 0 ? '解锁：粉碎晶块时释放连锁电弧弹射周围目标！' : `每次粉碎弹射 ${lv + 1} 个附近晶块并造成连锁爆破`
+    },
+    {
+      id: 'blades', key: '4', icon: '🌀', name: '环绕飞刃',
+      max: 10, baseCost: 50, mult: 1.72,
+      desc: (lv) => lv === 0 ? '解锁：召唤旋转棱镜飞刃围绕鼠标自动收割！' : `当前 ${lv} 把飞刃高速环绕切割`
+    },
+    {
+      id: 'shrapnel', key: '5', icon: '💎', name: '分裂弹片',
+      max: 12, baseCost: 65, mult: 1.62,
+      desc: (lv) => lv === 0 ? '解锁：碎裂晶块飞溅出反弹全屏的棱镜飞镖！' : `每次碎裂飞溅 ${lv + 1} 枚高速弹射弹片`
+    },
+    {
+      id: 'drones', key: '6', icon: '🛸', name: '浮游猎手',
+      max: 10, baseCost: 110, mult: 1.75,
+      desc: (lv) => lv === 0 ? '解锁：派遣智能浮游炮全屏自动追猎巨晶与爆弹！' : `当前 ${lv} 架浮游猎手自主清屏`
+    },
+    {
+      id: 'nova', key: '7', icon: '💥', name: '震荡黑洞',
+      max: 12, baseCost: 140, mult: 1.68,
+      desc: (lv) => lv === 0 ? '解锁：自动触发震荡冲击波并周期召唤黑洞漩涡！' : `震荡波威力 +${lv * 25}% 且强化黑洞坍缩爆破`
+    },
+    {
+      id: 'richness', key: '8', icon: '👑', name: '丰饶矿脉',
+      max: 15, baseCost: 45, mult: 1.64,
+      desc: (lv) => `晶块收益 ×${(1 + lv * 0.45).toFixed(2)}，大幅提升爆弹/棱镜/黄金流星出现率！`
+    }
+  ];
+
+  const RELICS = [
+    { id: 'hyperPulse', name: '高频过载', icon: '⚡', rarity: 'rare', desc: '光环切割速度 +40%，暴击率 +16%（暴击造成 3 倍粉碎伤害与额外火花）' },
+    { id: 'stormLord', name: '雷神之链', icon: '🌩️', rarity: 'epic', desc: '连锁闪电额外多弹射 +3 个目标，且有 35% 概率在落点引爆微型冲击波！' },
+    { id: 'kaleidoscope', name: '碎镜万华', icon: '🌈', rarity: 'epic', desc: '激光棱镜由 4 方向升级为 8 方向米字全屏激光，光束宽度与威力翻倍！' },
+    { id: 'clusterBombs', name: '连锁子母弹', icon: '💣', rarity: 'legend', desc: '爆弹引爆时额外分裂出 2 颗跳弹，0.3 秒后二次连环轰炸！' },
+    { id: 'singularity', name: '引力奇点', icon: '🕳️', rarity: 'legend', desc: '每 6 秒自动在晶块最密集处召唤一个超级黑洞，吸附后剧烈坍缩爆破！' },
+    { id: 'bladeTempest', name: '剑刃风暴', icon: '🗡️', rarity: 'rare', desc: '立即获得 +2 把环绕飞刃，且所有飞刃转速 +50%、切割半径扩大！' },
+    { id: 'ricochet', name: '弹幕折射', icon: '💠', rarity: 'epic', desc: '分裂弹片获得 +3 次屏幕墙壁反弹、+2 穿透，清屏弹幕根本停不下来！' },
+    { id: 'hunterSwarm', name: '蜂群协议', icon: '🛸', rarity: 'epic', desc: '立即增派 +2 架智能浮游猎手，且猎手命中时可触发连锁闪电！' },
+    { id: 'midas', name: '点石成金', icon: '🪙', rarity: 'rare', desc: '所有晶尘收益 +40%，且任意粉碎有 18% 概率喷出黄金喷泉！' },
+    { id: 'endlessFever', name: '永动狂热', icon: '🔥', rarity: 'epic', desc: 'FEVER 充能速度 +40%，持续时间 +4 秒，狂热期间天降双倍黄金流星！' },
+    { id: 'seismic', name: '地震共鸣', icon: '🌊', rarity: 'rare', desc: '每粉碎 14 个晶块自动以鼠标为中心释放一道巨型震荡冲击波！' },
+    { id: 'harmonic', name: '音律狂想', icon: '🎵', rarity: 'legend', desc: '每 10 连击提升 +8% 光环范围与攻速（最高叠加至 +80%），越连越狂暴！' },
+    { id: 'superBattery', name: '星爆反应堆', icon: '🌟', rarity: 'legend', desc: '星爆清屏充能速度 +55%，释放星爆后在场上残留 3 个黑洞漩涡！' },
+    { id: 'geodeCrusher', name: '巨晶粉碎者', icon: '⛏️', rarity: 'rare', desc: '对巨型晶簇造成 2.5 倍破坏力，且巨晶爆裂时喷出双倍璀璨宝石！' },
+    { id: 'cosmicMagnet', name: '星穹吸尘器', icon: '🧲', rarity: 'rare', desc: '磁吸范围翻倍、吸附飞行速度翻倍，体验极致吸尘器割草快感！' }
+  ];
+
+  const RANK_TITLES = [
+    '微光初醒', '碎晶学徒', '琉璃猎手', '棱镜行者',
+    '爆破大师', '雷霆领主', '浮游统帅', '星旋主宰',
+    '超新星化身', '奇点造物主', '银河粉碎神', '宇宙极乐境'
+  ];
+
+  /* ============================================================
+   * 4. UTILITY HELPERS
+   * ============================================================ */
+  function fmt(n) {
+    if (!Number.isFinite(n)) return '0';
+    if (n < 1000) return Math.floor(n).toString();
+    if (n < 1e6) return (n / 1e3).toFixed(n < 1e4 ? 2 : 1).replace(/\.0$/, '') + 'K';
+    if (n < 1e9) return (n / 1e6).toFixed(2).replace(/\.00$/, '') + 'M';
+    if (n < 1e12) return (n / 1e9).toFixed(2).replace(/\.00$/, '') + 'B';
+    return (n / 1e12).toFixed(2) + 'T';
+  }
+
+  function rand(a, b) { return a + Math.random() * (b - a); }
+  function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+  function distSq(x1, y1, x2, y2) { const dx = x1 - x2, dy = y1 - y2; return dx * dx + dy * dy; }
+
+  /* ============================================================
+   * 5. CORE GAME ENGINE
+   * ============================================================ */
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d', { alpha: false });
+  const sound = new SoundEngine();
+
+  let W = window.innerWidth;
+  let H = window.innerHeight;
+  let DPR = Math.min(window.devicePixelRatio || 1, 2);
+
+  function resize() {
+    W = window.innerWidth;
+    H = window.innerHeight;
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.floor(W * DPR);
+    canvas.height = Math.floor(H * DPR);
+    canvas.style.width = W + 'px';
+    canvas.style.height = H + 'px';
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  // Persistent Game State
+  function defaultState() {
+    return {
+      shards: 0,
+      xp: 0,
+      rank: 1,
+      prestige: 0,
+      upgrades: { aura: 0, pulse: 0, chain: 0, blades: 0, shrapnel: 0, drones: 0, nova: 0, richness: 0 },
+      relics: {},
+      pendingRelics: 0,
+      theme: 'prism',
+      shakeOn: true,
+      numsOn: true,
+      autoRelicPause: true,
+      stats: { shattered: 0, maxCombo: 0, fevers: 0 }
+    };
+  }
+
+  let state = defaultState();
+  let savedNormalState = null; // backup when toggling sandbox
+  let isSandbox = false;
+  let started = false;
+  let paused = false;
+
+  const SAVE_KEY = 'prism_shatter_save_v1';
+
+  function loadSave() {
+    try {
+      const raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') {
+        state = Object.assign(defaultState(), parsed);
+        state.upgrades = Object.assign(defaultState().upgrades, parsed.upgrades || {});
+        state.stats = Object.assign(defaultState().stats, parsed.stats || {});
+        state.relics = parsed.relics || {};
+        if (!THEMES[state.theme]) state.theme = 'prism';
+      }
+    } catch (_) {}
+  }
+
+  function saveGame() {
+    if (isSandbox) return;
+    try {
+      localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+    } catch (_) {}
+  }
+
+  loadSave();
+
+  // Live Runtime Simulation State
+  let theme = THEMES[state.theme];
+  let nextCrystalId = 1;
+
+  const crystals = [];
+  const gems = [];
+  const shrapnels = [];
+  const drones = [];
+  const bolts = [];
+  const lasers = [];
+  const shockwaves = [];
+  const blackHoles = [];
+  const particles = [];
+  const floatTexts = [];
+  const delayedEvents = [];
+  const cursorTrail = [];
+
+  // Pointer & Input
+  const pointer = {
+    x: W * 0.5,
+    y: H * 0.5,
+    vx: 0,
+    vy: 0,
+    down: false,
+    chargeTime: 0,
+    active: false,
+    overHud: false
+  };
+
+  // Combat & Pacing Timers
+  let combo = 0;
+  let comboTimer = 0;
+  let fever = 0; // 0..100
+  let feverActive = false;
+  let feverTimeLeft = 0;
+  let novaCharge = 0; // 0..100
+  let pulseTimer = 0;
+  let bladeAngle = 0;
+  let autoBlackHoleTimer = 0;
+  let seismicCounter = 0;
+  let spawnTimer = 0;
+  let cometTimer = 14;
+  let timeScale = 1;
+  let hitstopTimer = 0;
+  let shakeMag = 0;
+  let shakeX = 0;
+  let shakeY = 0;
+  let globalTime = 0;
+  let displayShards = state.shards;
+  let recentEarnings = []; // {t, v} for /s rate
+  let hudSyncTimer = 0;
+  let saveTimer = 0;
+  let bgPulse = 0;
+  let comboPopDirty = false;
+  let lastRelicSignature = '';
+
+  function scheduleDelayed(t, fn) {
+    if (delayedEvents.length >= 320) return;
+    delayedEvents.push({ t, fn });
+  }
+
+  // Spatial Grid for ultra-fast O(1) radius lookups
+  const CELL = 96;
+  let gridCols = 1;
+  let gridRows = 1;
+  let spatialGrid = [];
+
+  function rebuildGrid() {
+    gridCols = Math.max(1, Math.ceil(W / CELL));
+    gridRows = Math.max(1, Math.ceil(H / CELL));
+    const total = gridCols * gridRows;
+    if (spatialGrid.length !== total) {
+      spatialGrid = new Array(total);
+      for (let i = 0; i < total; i++) spatialGrid[i] = [];
+    } else {
+      for (let i = 0; i < total; i++) spatialGrid[i].length = 0;
+    }
+    for (let i = 0; i < crystals.length; i++) {
+      const c = crystals[i];
+      if (c.dead) continue;
+      const cx = clamp(Math.floor(c.x / CELL), 0, gridCols - 1);
+      const cy = clamp(Math.floor(c.y / CELL), 0, gridRows - 1);
+      spatialGrid[cy * gridCols + cx].push(c);
+    }
+  }
+
+  function queryCrystals(x, y, radius, out = []) {
+    out.length = 0;
+    const minX = clamp(Math.floor((x - radius) / CELL), 0, gridCols - 1);
+    const maxX = clamp(Math.floor((x + radius) / CELL), 0, gridCols - 1);
+    const minY = clamp(Math.floor((y - radius) / CELL), 0, gridRows - 1);
+    const maxY = clamp(Math.floor((y + radius) / CELL), 0, gridRows - 1);
+    for (let gy = minY; gy <= maxY; gy++) {
+      const rowOff = gy * gridCols;
+      for (let gx = minX; gx <= maxX; gx++) {
+        const bucket = spatialGrid[rowOff + gx];
+        if (!bucket) continue;
+        for (let i = 0; i < bucket.length; i++) {
+          const c = bucket[i];
+          if (c.dead) continue;
+          const rSum = radius + c.r;
+          if (distSq(x, y, c.x, c.y) <= rSum * rSum) out.push(c);
+        }
+      }
+    }
+    return out;
+  }
+
+  /* ============================================================
+   * 6. STAT FORMULAS (Snappy Escalation!)
+   * ============================================================ */
+  function relicCount(id) { return state.relics[id] || 0; }
+
+  function getUpgradeCost(u) {
+    const lv = state.upgrades[u.id] || 0;
+    return Math.floor(u.baseCost * Math.pow(u.mult, lv));
+  }
+
+  function getXpForRank(r) {
+    return Math.floor(28 * Math.pow(1.42, r - 1));
+  }
+
+  function getHarmonicBonus() {
+    const stacks = relicCount('harmonic');
+    if (!stacks) return 0;
+    return Math.min(0.8 * stacks, Math.floor(combo / 10) * 0.08 * stacks);
+  }
+
+  function getAuraRadius() {
+    const base = 54 + state.upgrades.aura * 12;
+    const feverBonus = feverActive ? 1.28 : 1.0;
+    return base * (1 + getHarmonicBonus() * 0.7) * feverBonus;
+  }
+
+  function getMagnetRadius() {
+    if (feverActive) return Math.max(W, H) * 1.4;
+    const base = 135 + state.upgrades.aura * 26;
+    return base * (1 + relicCount('cosmicMagnet') * 1.15);
+  }
+
+  function getPulseInterval() {
+    const base = 0.145 / (1 + state.upgrades.pulse * 0.22);
+    const speedMult = (1 + relicCount('hyperPulse') * 0.4 + getHarmonicBonus()) * (feverActive ? 1.6 : 1.0);
+    return Math.max(0.028, base / speedMult);
+  }
+
+  function getBaseDamage() {
+    return (1 + state.upgrades.pulse * 0.55) * (feverActive ? 2.5 : 1.0);
+  }
+
+  function getCritChance() {
+    return Math.min(0.85, 0.06 + state.upgrades.pulse * 0.015 + relicCount('hyperPulse') * 0.16 + (feverActive ? 0.2 : 0));
+  }
+
+  function getShardMultiplier() {
+    const rich = 1 + state.upgrades.richness * 0.45;
+    const comboMult = 1 + Math.min(4.0, combo * 0.025);
+    const feverMult = feverActive ? 3.0 : 1.0;
+    const midas = 1 + relicCount('midas') * 0.4;
+    const prestigeMult = Math.pow(2.5, state.prestige);
+    return rich * comboMult * feverMult * midas * prestigeMult;
+  }
+
+  function getTotalBlades() {
+    return state.upgrades.blades + relicCount('bladeTempest') * 2;
+  }
+
+  function getTotalDrones() {
+    return state.upgrades.drones + relicCount('hunterSwarm') * 2;
+  }
+
+  function getCursorTier() {
+    if (state.rank >= 16) return 5;
+    if (state.rank >= 12) return 4;
+    if (state.rank >= 8) return 3;
+    if (state.rank >= 4) return 2;
+    return 1;
+  }
+
+  /* ============================================================
+   * 7. SPAWNER & GEOMETRIC FORMATIONS (Tactile & Satisfying!)
+   * ============================================================ */
+  function createCrystal(x, y, type = 'normal', colorIdx = null) {
+    const idx = colorIdx !== null ? colorIdx % theme.palette.length : Math.floor(Math.random() * theme.palette.length);
+    const richLv = state.upgrades.richness;
+    let r = rand(15, 22);
+    let hp = 1;
+    let sides = theme.shapeMode === 'bubble' ? 0 : (theme.shapeMode === 'diamond' ? 4 : (theme.shapeMode === 'hex' ? 6 : (Math.random() < 0.5 ? 6 : 5)));
+    let value = 2;
+    let color = theme.palette[idx];
+
+    if (type === 'bomb') {
+      r = 21;
+      hp = 1.4;
+      sides = 8;
+      value = 6;
+      color = theme.bombColor;
+    } else if (type === 'prism') {
+      r = 20;
+      hp = 1.3;
+      sides = 4;
+      value = 8;
+      color = theme.prismColor;
+    } else if (type === 'vortex') {
+      r = 23;
+      hp = 1.8;
+      sides = 0;
+      value = 10;
+      color = theme.vortexColor;
+    } else if (type === 'geode') {
+      r = 35;
+      hp = 6 + Math.min(18, Math.floor(state.rank * 1.1));
+      sides = 6;
+      value = 26 + richLv * 6;
+      color = theme.geodeColor;
+    } else if (type === 'comet') {
+      r = 18;
+      hp = 1.2;
+      sides = 4;
+      value = 35;
+      color = theme.cometColor;
+    } else if (type === 'gold') {
+      r = 13;
+      hp = 1;
+      sides = 4;
+      value = 7;
+      color = '#ffd452';
+    }
+
+    const c = {
+      id: nextCrystalId++,
+      x, y,
+      vx: rand(-10, 10),
+      vy: rand(-10, 10),
+      r,
+      maxHp: hp,
+      hp,
+      type,
+      sides,
+      rot: rand(0, Math.PI * 2),
+      vRot: rand(-0.6, 0.6),
+      color,
+      colorIdx: idx,
+      hitFlash: 0,
+      wobble: 0,
+      birth: 0,
+      age: 0,
+      value,
+      dead: false,
+      cometTrailTimer: 0
+    };
+    crystals.push(c);
+    return c;
+  }
+
+  function pickSafeCenter(margin = 110) {
+    const topSafe = 110;
+    const botSafe = 120;
+    for (let tries = 0; tries < 8; tries++) {
+      const x = rand(margin, Math.max(margin + 10, W - margin));
+      const y = rand(topSafe, Math.max(topSafe + 10, H - botSafe));
+      if (distSq(x, y, pointer.x, pointer.y) > 120 * 120) return { x, y };
+    }
+    return { x: rand(80, W - 80), y: rand(topSafe, H - botSafe) };
+  }
+
+  function spawnWelcomeMandala() {
+    crystals.length = 0;
+    const cx = W * 0.5;
+    const cy = H * 0.5;
+    // Center prism & rings of vibrant crystals so the very first click explodes gloriously!
+    createCrystal(cx, cy, 'bomb', 0);
+    for (let ring = 1; ring <= 3; ring++) {
+      const count = ring * 8;
+      const rad = ring * 52;
+      for (let i = 0; i < count; i++) {
+        const a = (i / count) * Math.PI * 2 + ring * 0.25;
+        const type = (ring === 2 && i % 4 === 0) ? 'prism' : 'normal';
+        const c = createCrystal(cx + Math.cos(a) * rad, cy + Math.sin(a) * rad, type, i + ring);
+        c.vx = 0; c.vy = 0;
+      }
+    }
+  }
+
+  function spawnFormation() {
+    const rich = state.upgrades.richness;
+    const rank = state.rank;
+    const specialChance = Math.min(0.65, 0.14 + rich * 0.035 + (feverActive ? 0.22 : 0));
+    const roll = Math.random();
+    const center = pickSafeCenter(115);
+
+    if (roll < 0.30) {
+      // 1. Honeycomb Cluster (蜂巢群)
+      const rings = Math.random() < 0.45 + (feverActive ? 0.3 : 0) ? 2 : 1;
+      const step = 38;
+      const colorBase = Math.floor(Math.random() * theme.palette.length);
+      const centerType = Math.random() < specialChance
+        ? (Math.random() < 0.55 ? 'bomb' : 'prism')
+        : 'normal';
+      createCrystal(center.x, center.y, centerType, colorBase);
+      for (let r = 1; r <= rings; r++) {
+        const count = r * 6;
+        for (let i = 0; i < count; i++) {
+          const a = (i / count) * Math.PI * 2;
+          const px = center.x + Math.cos(a) * step * r;
+          const py = center.y + Math.sin(a) * step * r;
+          if (px > 35 && px < W - 35 && py > 85 && py < H - 105) {
+            createCrystal(px, py, 'normal', colorBase + r);
+          }
+        }
+      }
+    } else if (roll < 0.55) {
+      // 2. Golden Spiral (星旋阵)
+      const count = Math.floor(rand(10, feverActive ? 22 : 16));
+      const colorBase = Math.floor(Math.random() * theme.palette.length);
+      for (let i = 0; i < count; i++) {
+        const a = i * 2.39996;
+        const dist = 16 * Math.sqrt(i + 1);
+        const px = center.x + Math.cos(a) * dist;
+        const py = center.y + Math.sin(a) * dist;
+        if (px > 35 && px < W - 35 && py > 85 && py < H - 105) {
+          const t = (i === 0 && Math.random() < specialChance) ? 'prism' : 'normal';
+          createCrystal(px, py, t, colorBase + Math.floor(i / 3));
+        }
+      }
+    } else if (roll < 0.76) {
+      // 3. Concentric Ring with Special Core (Geode / Vortex / Bomb)
+      let coreType = 'bomb';
+      const sr = Math.random();
+      if (rank >= 2 && sr < 0.36) coreType = 'geode';
+      else if (rank >= 3 && sr < 0.65) coreType = 'vortex';
+      else if (sr < 0.85) coreType = 'prism';
+
+      createCrystal(center.x, center.y, coreType, 0);
+      const count = Math.floor(rand(8, 14));
+      const rad = coreType === 'geode' ? 68 : 54;
+      const colorBase = Math.floor(Math.random() * theme.palette.length);
+      for (let i = 0; i < count; i++) {
+        const a = (i / count) * Math.PI * 2;
+        const px = center.x + Math.cos(a) * rad;
+        const py = center.y + Math.sin(a) * rad;
+        if (px > 35 && px < W - 35 && py > 85 && py < H - 105) {
+          createCrystal(px, py, 'normal', colorBase + (i % 2));
+        }
+      }
+    } else if (roll < 0.90) {
+      // 4. Domino Bomb / Prism Line (连环爆弹阵!)
+      const horizontal = Math.random() < 0.5;
+      const count = feverActive ? 5 : 4;
+      const spacing = 54;
+      for (let i = 0; i < count; i++) {
+        const offset = (i - (count - 1) / 2) * spacing;
+        const px = center.x + (horizontal ? offset : rand(-14, 14));
+        const py = center.y + (horizontal ? rand(-14, 14) : offset);
+        if (px > 40 && px < W - 40 && py > 90 && py < H - 110) {
+          const t = (i % 2 === 0) ? 'bomb' : (Math.random() < 0.45 ? 'prism' : 'normal');
+          createCrystal(px, py, t, i);
+          // Surround with twin crisp filler crystals
+          const ox = horizontal ? 0 : 34;
+          const oy = horizontal ? 34 : 0;
+          if (py - oy > 85 && py + oy < H - 105 && px - ox > 35 && px + ox < W - 35) {
+            createCrystal(px + ox, py + oy, 'normal', i + 1);
+            createCrystal(px - ox, py - oy, 'normal', i + 2);
+          }
+        }
+      }
+    } else {
+      // 5. Flowing Ribbon Wave (光浪流)
+      const count = Math.floor(rand(10, 16));
+      const angle = rand(0, Math.PI * 2);
+      const dx = Math.cos(angle);
+      const dy = Math.sin(angle);
+      const nx = -dy;
+      const ny = dx;
+      const colorBase = Math.floor(Math.random() * theme.palette.length);
+      for (let i = 0; i < count; i++) {
+        const t = i - count / 2;
+        const wave = Math.sin(i * 0.7) * 28;
+        const px = center.x + dx * t * 30 + nx * wave;
+        const py = center.y + dy * t * 30 + ny * wave;
+        if (px > 35 && px < W - 35 && py > 85 && py < H - 105) {
+          createCrystal(px, py, (i === Math.floor(count / 2) && Math.random() < specialChance) ? 'prism' : 'normal', colorBase + i);
+        }
+      }
+    }
+  }
+
+  function spawnGoldenComet() {
+    const fromLeft = Math.random() < 0.5;
+    const x = fromLeft ? -25 : W + 25;
+    const y = rand(120, H - 160);
+    const c = createCrystal(x, y, 'comet', 3);
+    const speed = rand(185, 250);
+    c.vx = fromLeft ? speed : -speed;
+    c.vy = rand(-38, 38);
+  }
+
+  /* ============================================================
+   * 8. JUICE EFFECTS (Particles, Shards, Bolts, Lasers, Text)
+   * ============================================================ */
+  function addShake(amount) {
+    if (!state.shakeOn) return;
+    shakeMag = Math.min(22, Math.max(shakeMag, amount));
+  }
+
+  function addHitstop(sec) {
+    hitstopTimer = Math.max(hitstopTimer, Math.min(0.065, sec));
+  }
+
+  function spawnParticles(x, y, color, count = 8, speed = 170, shape = 'shard') {
+    const budget = Math.max(0, 560 - particles.length);
+    const n = Math.min(count, budget);
+    for (let i = 0; i < n; i++) {
+      const a = rand(0, Math.PI * 2);
+      const sp = rand(speed * 0.35, speed * 1.25);
+      particles.push({
+        x, y,
+        vx: Math.cos(a) * sp,
+        vy: Math.sin(a) * sp,
+        size: rand(3, 8.5),
+        color,
+        life: rand(0.28, 0.65),
+        maxLife: 0.65,
+        rot: rand(0, Math.PI * 2),
+        vRot: rand(-10, 10),
+        shape: theme.shapeMode === 'bubble' ? 'bubble' : shape,
+        drag: 0.93
+      });
+    }
+  }
+
+  function spawnShockwave(x, y, maxR, color, lineWidth = 4) {
+    if (shockwaves.length > 42) shockwaves.shift();
+    shockwaves.push({
+      x, y, r: 8, maxR, color, lineWidth,
+      life: 0.36, maxLife: 0.36
+    });
+  }
+
+  function spawnFloatText(x, y, text, color = '#ffffff', scale = 1) {
+    if (!state.numsOn) return;
+    if (floatTexts.length > 44) floatTexts.shift();
+    floatTexts.push({
+      x: x + rand(-10, 10),
+      y: y + rand(-8, 4),
+      vy: -54 - rand(0, 26),
+      text, color, scale,
+      life: 0.72, maxLife: 0.72
+    });
+  }
+
+  function spawnGems(x, y, totalValue, count, color, isGold = false) {
+    const actualCount = Math.min(count, 18);
+    const valEach = totalValue / actualCount;
+    for (let i = 0; i < actualCount; i++) {
+      if (gems.length >= 280) {
+        // Merge into a random existing gem so zero lag & zero lost value!
+        const target = gems[Math.floor(Math.random() * gems.length)];
+        target.value += valEach;
+        target.r = Math.min(11, target.r + 0.3);
+        continue;
+      }
+      const a = rand(0, Math.PI * 2);
+      const sp = rand(95, 270);
+      gems.push({
+        x, y,
+        vx: Math.cos(a) * sp,
+        vy: Math.sin(a) * sp,
+        r: isGold ? rand(5.5, 7.5) : rand(4, 6),
+        color: isGold ? '#ffd452' : color,
+        value: valEach,
+        age: 0,
+        isGold
+      });
+    }
+  }
+
+  function spawnShrapnel(x, y, count, color, dmg) {
+    const extraBounce = relicCount('ricochet') * 3;
+    const extraPierce = relicCount('ricochet') * 2;
+    const maxCap = 95;
+    for (let i = 0; i < count; i++) {
+      if (shrapnels.length >= maxCap) break;
+      const a = (i / count) * Math.PI * 2 + rand(-0.25, 0.25);
+      const sp = rand(460, 620);
+      shrapnels.push({
+        x, y,
+        vx: Math.cos(a) * sp,
+        vy: Math.sin(a) * sp,
+        r: 6,
+        dmg,
+        pierce: 1 + extraPierce,
+        bounces: 1 + extraBounce,
+        color,
+        life: 1.45,
+        hitIds: new Set()
+      });
+    }
+  }
+
+  function spawnBlackHole(x, y, pullR = 175, duration = 0.75) {
+    if (blackHoles.length >= 8) return;
+    blackHoles.push({
+      x: clamp(x, 60, W - 60),
+      y: clamp(y, 90, H - 110),
+      r: 22,
+      pullR,
+      life: duration,
+      maxLife: duration,
+      rot: 0
+    });
+    sound.playLaser();
+  }
+
+  function showBanner(title, sub = '', color = '#ffd452') {
+    const el = document.getElementById('bannerToast');
+    el.style.color = color;
+    el.innerHTML = `${title}<span class="banner-sub">${sub}</span>`;
+    el.classList.add('show');
+    clearTimeout(showBanner._t);
+    showBanner._t = setTimeout(() => el.classList.remove('show'), 1450);
+  }
+
+  /* ============================================================
+   * 9. DAMAGE, SHATTER & CHAIN-REACTION ORCHESTRATION
+   * ============================================================ */
+  function awardShards(val) {
+    state.shards += val;
+    recentEarnings.push({ t: globalTime, v: val });
+  }
+
+  function addXp(amount) {
+    state.xp += amount;
+    let needed = getXpForRank(state.rank);
+    let leveled = false;
+    while (state.xp >= needed) {
+      state.xp -= needed;
+      state.rank++;
+      state.pendingRelics++;
+      leveled = true;
+      needed = getXpForRank(state.rank);
+    }
+    if (leveled) {
+      sound.playChord([523.25, 659.25, 783.99, 1046.5, 1318.5], 0.45, 0.14);
+      const title = RANK_TITLES[Math.min(RANK_TITLES.length - 1, Math.floor((state.rank - 1) / 1.5))];
+      showBanner(`✦ RANK UP · LV.${state.rank} ✦`, `晋升称号：${title}`, '#72f4ff');
+      spawnShockwave(pointer.x, pointer.y, 260, '#72f4ff', 6);
+      updateRelicPendingUI();
+      if (state.autoRelicPause && !document.getElementById('relicModal').classList.contains('open')) {
+        // Short joyous delay so player sees the Rank Up burst first
+        setTimeout(() => {
+          if (state.pendingRelics > 0 && started && !paused) openRelicModal();
+        }, 520);
+      }
+    }
+  }
+
+  function triggerFever() {
+    feverActive = true;
+    fever = 100;
+    feverTimeLeft = 11.5 + relicCount('endlessFever') * 4.0;
+    state.stats.fevers++;
+    sound.playFeverStart();
+    addShake(11);
+    bgPulse = 1.0;
+    showBanner('⚡ HYPER FEVER ×3 ⚡', '全屏磁吸 · 三倍收益 · 狂暴连爆！', '#ffd452');
+    spawnShockwave(W * 0.5, H * 0.5, Math.max(W, H) * 0.6, '#ff6ec7', 8);
+    // Rain bonus Golden Comets!
+    const cometCount = 1 + relicCount('endlessFever');
+    for (let i = 0; i < cometCount; i++) {
+      delayedEvents.push({ t: 0.4 + i * 1.4, fn: () => spawnGoldenComet() });
+    }
+  }
+
+  function triggerSupernova() {
+    if (novaCharge < 100 || !started || paused) return;
+    novaCharge = 0;
+    sound.playSupernova();
+    addShake(18);
+    timeScale = 0.24;
+    bgPulse = 1.2;
+    showBanner('🌟 星爆清屏 · SUPERNOVA 🌟', '万晶俱碎！', '#ffffff');
+
+    const cx = pointer.x;
+    const cy = pointer.y;
+    const maxR = Math.hypot(W, H);
+    spawnShockwave(cx, cy, maxR, '#ffffff', 12);
+    spawnShockwave(cx, cy, maxR * 0.85, '#ff6ec7', 7);
+    spawnShockwave(cx, cy, maxR * 0.7, '#62f4ff', 5);
+
+    // Stagger shattering crystals radially from cursor for an UNBELIEVABLE wave ripple!
+    const snapshot = crystals.filter(c => !c.dead);
+    snapshot.sort((a, b) => distSq(cx, cy, a.x, a.y) - distSq(cx, cy, b.x, b.y));
+    const dmg = getBaseDamage() * 25;
+    snapshot.forEach((c, idx) => {
+      const d = Math.hypot(c.x - cx, c.y - cy);
+      const delay = clamp(d / 1600, 0, 0.36) + (idx % 5) * 0.008;
+      delayedEvents.push({
+        t: delay,
+        fn: () => {
+          if (!c.dead) damageCrystal(c, dmg, 'supernova', true);
+        }
+      });
+    });
+
+    // Relic synergy: leave 3 Black Holes!
+    if (relicCount('superBattery') > 0) {
+      for (let i = 0; i < 3; i++) {
+        const a = (i / 3) * Math.PI * 2 + Math.random();
+        delayedEvents.push({
+          t: 0.45 + i * 0.12,
+          fn: () => spawnBlackHole(cx + Math.cos(a) * 180, cy + Math.sin(a) * 140, 210, 0.9)
+        });
+      }
+    }
+  }
+
+  function fireChainLightning(fromX, fromY, jumps, dmg, excludeSet = new Set()) {
+    if (jumps <= 0) return;
+    let curX = fromX;
+    let curY = fromY;
+    const range = 230 + state.upgrades.chain * 14;
+    const rangeSq = range * range;
+    const stormMiniNova = relicCount('stormLord') > 0;
+
+    sound.playLightning();
+
+    for (let j = 0; j < jumps; j++) {
+      let best = null;
+      let bestD = rangeSq;
+      for (let i = 0; i < crystals.length; i++) {
+        const c = crystals[i];
+        if (c.dead || excludeSet.has(c.id)) continue;
+        const d = distSq(curX, curY, c.x, c.y);
+        if (d < bestD) {
+          bestD = d;
+          best = c;
+        }
+      }
+      if (!best) break;
+      excludeSet.add(best.id);
+
+      // Build jagged lightning segment points
+      const pts = [{ x: curX, y: curY }];
+      const steps = 4;
+      for (let s = 1; s < steps; s++) {
+        const t = s / steps;
+        pts.push({
+          x: curX + (best.x - curX) * t + rand(-14, 14),
+          y: curY + (best.y - curY) * t + rand(-14, 14)
+        });
+      }
+      pts.push({ x: best.x, y: best.y });
+      if (bolts.length < 48) {
+        bolts.push({ pts, color: theme.auraColor, life: 0.18, maxLife: 0.18, width: 2.6 });
+      }
+
+      const target = best;
+      const delay = j * 0.028;
+      scheduleDelayed(delay, () => {
+        if (!target.dead) {
+          damageCrystal(target, dmg, 'lightning', false);
+          if (stormMiniNova && Math.random() < 0.35) {
+            triggerExplosion(target.x, target.y, 85, dmg * 0.7, theme.auraColor, false);
+          }
+        }
+      });
+
+      curX = best.x;
+      curY = best.y;
+    }
+  }
+
+  function triggerExplosion(x, y, radius, dmg, color, big = true) {
+    spawnShockwave(x, y, radius, color, big ? 5.5 : 3);
+    spawnParticles(x, y, color, big ? 20 : 10, big ? 300 : 180);
+    if (big) {
+      sound.playBomb(radius / 130);
+      addShake(Math.min(13, radius / 18));
+    }
+    const hits = queryCrystals(x, y, radius, []);
+    for (let i = 0; i < hits.length; i++) {
+      const t = hits[i];
+      if (t.dead) continue;
+      // Push outward slightly & stagger chain bombs for delicious domino effect!
+      const dx = t.x - x, dy = t.y - y;
+      const d = Math.hypot(dx, dy) || 1;
+      t.vx += (dx / d) * 140;
+      t.vy += (dy / d) * 140;
+      if (t.type === 'bomb' || t.type === 'prism' || t.type === 'vortex') {
+        scheduleDelayed(0.065 + rand(0, 0.03), () => {
+          if (!t.dead) damageCrystal(t, dmg * 1.4, 'chain', false);
+        });
+      } else {
+        damageCrystal(t, dmg, 'explosion', false);
+      }
+    }
+  }
+
+  function firePrismLasers(x, y, dmg) {
+    sound.playLaser();
+    addShake(6);
+    const dirs = relicCount('kaleidoscope') > 0 ? 8 : 4;
+    const baseAngle = Math.random() < 0.5 ? 0 : Math.PI / 4;
+    const beamLen = Math.hypot(W, H);
+    const width = relicCount('kaleidoscope') > 0 ? 22 : 14;
+    const laserDmg = dmg * (relicCount('kaleidoscope') > 0 ? 2.4 : 1.5);
+
+    for (let i = 0; i < dirs; i++) {
+      const a = baseAngle + (i / dirs) * Math.PI * 2;
+      const dx = Math.cos(a);
+      const dy = Math.sin(a);
+      const x2 = x + dx * beamLen;
+      const y2 = y + dy * beamLen;
+      if (lasers.length < 36) {
+        lasers.push({ x1: x, y1: y, x2, y2, color: theme.prismColor, width, life: 0.28, maxLife: 0.28 });
+      }
+      // Line-vs-circle intersection across all crystals
+      for (let j = 0; j < crystals.length; j++) {
+        const c = crystals[j];
+        if (c.dead) continue;
+        const px = c.x - x;
+        const py = c.y - y;
+        const proj = px * dx + py * dy;
+        if (proj < 0) continue;
+        const perp = Math.abs(px * -dy + py * dx);
+        if (perp <= c.r + width * 0.65) {
+          const target = c;
+          const delay = clamp(proj / 2200, 0, 0.16);
+          delayedEvents.push({
+            t: delay,
+            fn: () => { if (!target.dead) damageCrystal(target, laserDmg, 'laser', false); }
+          });
+        }
+      }
+    }
+  }
+
+  function damageCrystal(c, rawDmg, source = 'aura', forceCrit = false) {
+    if (c.dead) return;
+    let dmg = rawDmg;
+    if (c.type === 'geode' && relicCount('geodeCrusher') > 0) {
+      dmg *= 2.5 * relicCount('geodeCrusher');
+    }
+    const isCrit = forceCrit || (Math.random() < getCritChance());
+    if (isCrit) dmg *= 2.6;
+
+    c.hp -= dmg;
+    c.hitFlash = 1.0;
+    c.wobble = 1.0;
+
+    if (c.hp > 0) {
+      sound.playHitTick();
+      spawnParticles(c.x, c.y, c.color, 3, 120);
+      if (c.type === 'geode') {
+        addShake(2.2);
+        // Tiny chip-off gems as you drill into a Mega Geode!
+        if (Math.random() < 0.35) {
+          spawnGems(c.x, c.y, Math.max(1, c.value * 0.08 * getShardMultiplier()), 1, '#ffd452', true);
+        }
+      }
+      return;
+    }
+
+    // SHATTER!
+    c.dead = true;
+    state.stats.shattered++;
+    combo++;
+    comboTimer = 2.6;
+    if (combo > state.stats.maxCombo) state.stats.maxCombo = combo;
+    bgPulse = Math.min(1, bgPulse + 0.08);
+
+    // Mark combo badge for next HUD tick (avoids layout thrashing on multi-kills!)
+    comboPopDirty = true;
+
+    // Fever & Supernova Charging
+    if (!feverActive) {
+      const feverGain = (c.type === 'geode' ? 8 : c.type === 'normal' ? 1.15 : 2.6) * (1 + relicCount('endlessFever') * 0.4);
+      fever = Math.min(100, fever + feverGain);
+      if (fever >= 100) triggerFever();
+    }
+    if (source !== 'supernova') {
+      const novaGain = (c.type === 'geode' ? 7 : 1.1) * (1 + relicCount('superBattery') * 0.55);
+      novaCharge = Math.min(100, novaCharge + novaGain);
+    }
+
+    // Value & XP calculation
+    const mult = getShardMultiplier();
+    const midasJackpot = relicCount('midas') > 0 && Math.random() < 0.18;
+    const totalVal = Math.max(1, Math.round(c.value * mult * (isCrit ? 1.5 : 1) * (midasJackpot ? 3 : 1)));
+    const gemCount = c.type === 'geode'
+      ? (14 + relicCount('geodeCrusher') * 8)
+      : c.type === 'comet' ? 14 : (midasJackpot ? 8 : 3);
+    spawnGems(c.x, c.y, totalVal, gemCount, c.color, c.type === 'geode' || c.type === 'comet' || c.type === 'gold' || midasJackpot);
+
+    addXp(c.type === 'geode' ? 10 : c.type === 'comet' ? 12 : (c.type === 'normal' ? 1 : 3));
+
+    // Audio & Visuals
+    sound.playShatter(combo, isCrit, c.type === 'geode');
+    spawnParticles(c.x, c.y, midasJackpot ? '#ffd452' : c.color, c.type === 'geode' ? 32 : (isCrit ? 14 : 9), c.type === 'geode' ? 330 : 210);
+
+    if (c.type === 'geode') {
+      addHitstop(0.036);
+      addShake(11);
+      spawnShockwave(c.x, c.y, 175, '#ffd452', 6);
+      spawnFloatText(c.x, c.y - 12, `MEGA +${fmt(totalVal)}!`, '#ffd452', 1.45);
+    } else if (c.type === 'comet') {
+      addHitstop(0.03);
+      addShake(9);
+      spawnShockwave(c.x, c.y, 190, '#ffe866', 6);
+      spawnFloatText(c.x, c.y - 12, `JACKPOT +${fmt(totalVal)}!`, '#ffe866', 1.5);
+    } else if (midasJackpot) {
+      spawnFloatText(c.x, c.y - 8, `黄金爆! +${fmt(totalVal)}`, '#ffd452', 1.25);
+    } else if (isCrit) {
+      spawnFloatText(c.x, c.y - 6, `CRIT +${fmt(totalVal)}`, '#ff77cb', 1.15);
+    } else if (Math.random() < 0.55) {
+      spawnFloatText(c.x, c.y - 4, `+${fmt(totalVal)}`, theme.light ? '#3d2c54' : '#ffffff', 0.92);
+    }
+
+    // Special Crystal Chain Behaviors!
+    if (c.type === 'bomb') {
+      const blastR = 135 + state.upgrades.nova * 8;
+      triggerExplosion(c.x, c.y, blastR, getBaseDamage() * 3.5, theme.bombColor, true);
+      if (relicCount('clusterBombs') > 0) {
+        const subCount = 2 + Math.min(2, relicCount('clusterBombs') - 1);
+        for (let k = 0; k < subCount; k++) {
+          const a = rand(0, Math.PI * 2);
+          const dist = rand(65, 130);
+          const bx = clamp(c.x + Math.cos(a) * dist, 50, W - 50);
+          const by = clamp(c.y + Math.sin(a) * dist, 90, H - 110);
+          scheduleDelayed(0.28 + k * 0.06, () => {
+            triggerExplosion(bx, by, 105, getBaseDamage() * 2.5, theme.bombColor, true);
+          });
+        }
+      }
+    } else if (c.type === 'prism') {
+      firePrismLasers(c.x, c.y, getBaseDamage() * 2.5);
+    } else if (c.type === 'vortex') {
+      spawnBlackHole(c.x, c.y, 195 + state.upgrades.nova * 10, 0.7);
+    }
+
+    // Upgrade Synergies triggered on shatter!
+    const chainLv = state.upgrades.chain;
+    if (chainLv > 0 && source !== 'lightning' && source !== 'supernova') {
+      const chance = source === 'aura' || source === 'blade' || source === 'drone' ? 0.55 : 0.22;
+      if (Math.random() < chance) {
+        const jumps = chainLv + 1 + relicCount('stormLord') * 3;
+        const ex = new Set([c.id]);
+        fireChainLightning(c.x, c.y, jumps, getBaseDamage() * (0.9 + chainLv * 0.12), ex);
+      }
+    }
+
+    const shrapLv = state.upgrades.shrapnel;
+    if (shrapLv > 0 && source !== 'shrapnel' && source !== 'supernova') {
+      if (Math.random() < (source === 'aura' ? 0.52 : 0.25)) {
+        spawnShrapnel(c.x, c.y, shrapLv + 1, c.color, getBaseDamage() * 0.95);
+      }
+    }
+
+    // Seismic Resonance Relic / Nova Upgrade auto-shockwave!
+    seismicCounter++;
+    const novaThreshold = Math.max(7, 22 - state.upgrades.nova - relicCount('seismic') * 5);
+    if ((state.upgrades.nova > 0 || relicCount('seismic') > 0) && seismicCounter >= novaThreshold) {
+      seismicCounter = 0;
+      const r = 130 + state.upgrades.nova * 14 + relicCount('seismic') * 26;
+      triggerExplosion(pointer.x, pointer.y, r, getBaseDamage() * (1.8 + state.upgrades.nova * 0.35), theme.auraColor, false);
+      spawnShockwave(pointer.x, pointer.y, r, theme.auraColor, 4.5);
+    }
+  }
+
+  /* ============================================================
+   * 10. DRONES & ACTIVE CLICK/CHARGE SHOCKWAVE
+   * ============================================================ */
+  function syncDrones() {
+    const targetCount = getTotalDrones();
+    while (drones.length < targetCount) {
+      const a = rand(0, Math.PI * 2);
+      drones.push({
+        x: pointer.x + Math.cos(a) * 90,
+        y: pointer.y + Math.sin(a) * 90,
+        vx: rand(-120, 120),
+        vy: rand(-120, 120),
+        angle: a,
+        fireCd: rand(0, 0.25),
+        trail: []
+      });
+    }
+    if (drones.length > targetCount) drones.length = targetCount;
+  }
+
+  function releaseClickPulse(charge) {
+    if (!started || paused) return;
+    const isSlam = charge >= 0.32;
+    const power = isSlam ? clamp(1 + charge * 1.4, 1.3, 2.8) : 1.0;
+    const r = getAuraRadius() * (isSlam ? 1.85 + Math.min(0.8, charge) : 1.35);
+    const dmg = getBaseDamage() * (isSlam ? 3.2 * power : 1.8);
+    spawnShockwave(pointer.x, pointer.y, r, isSlam ? '#ffd452' : theme.auraColor, isSlam ? 6 : 3.5);
+    if (isSlam) {
+      sound.playBomb(1.1);
+      addShake(8);
+    } else {
+      sound.playShatter(combo + 2, false, false);
+      addShake(2.5);
+    }
+    const hits = queryCrystals(pointer.x, pointer.y, r, []);
+    for (let i = 0; i < hits.length; i++) {
+      damageCrystal(hits[i], dmg, 'aura', isSlam);
+    }
+  }
+
+  /* ============================================================
+   * 11. MAIN UPDATE LOOP
+   * ============================================================ */
+  const queryBuf = [];
+
+  function update(rawDt) {
+    const dtClamped = Math.min(0.05, rawDt);
+    globalTime += dtClamped;
+
+    // Smooth recovery from slow-mo & hitstop
+    if (hitstopTimer > 0) {
+      hitstopTimer -= dtClamped;
+      return;
+    }
+    timeScale += (1 - timeScale) * Math.min(1, dtClamped * 6.5);
+    const dt = dtClamped * timeScale;
+
+    bgPulse = Math.max(0, bgPulse - dt * 1.6);
+
+    // Camera Shake Decay
+    if (shakeMag > 0.1) {
+      shakeX = (Math.random() * 2 - 1) * shakeMag;
+      shakeY = (Math.random() * 2 - 1) * shakeMag;
+      shakeMag *= Math.pow(0.0012, dtClamped);
+    } else {
+      shakeMag = 0; shakeX = 0; shakeY = 0;
+    }
+
+    // Idle gentle animation before Start
+    if (!started) {
+      for (let i = 0; i < crystals.length; i++) {
+        const c = crystals[i];
+        c.age += dt;
+        c.birth = Math.min(1, c.birth + dt * 3.5);
+        c.rot += c.vRot * dt * 0.5;
+      }
+      return;
+    }
+
+    if (paused) return;
+
+    // Fever Timer & Music
+    if (feverActive) {
+      feverTimeLeft -= dtClamped;
+      const maxDur = 11.5 + relicCount('endlessFever') * 4.0;
+      fever = clamp((feverTimeLeft / maxDur) * 100, 0, 100);
+      if (feverTimeLeft <= 0) {
+        feverActive = false;
+        fever = 0;
+      }
+    } else {
+      // Gentle fever decay only when combo stops
+      if (combo === 0 && fever > 0) fever = Math.max(0, fever - dt * 3.5);
+    }
+    sound.tickFeverMusic(dtClamped, feverActive);
+
+    // Combo Decay
+    if (combo > 0) {
+      comboTimer -= dtClamped;
+      if (comboTimer <= 0) combo = 0;
+    }
+
+    // Rebuild spatial grid before processing delayed chain reactions
+    rebuildGrid();
+
+    // Delayed Chain Reaction Queue
+    for (let i = delayedEvents.length - 1; i >= 0; i--) {
+      delayedEvents[i].t -= dt;
+      if (delayedEvents[i].t <= 0) {
+        const fn = delayedEvents[i].fn;
+        delayedEvents.splice(i, 1);
+        fn();
+      }
+    }
+
+    // Spawn Formations & Golden Comets
+    const targetDensity = (feverActive ? 92 : 44) + state.upgrades.richness * 4 + Math.min(35, state.rank * 2);
+    spawnTimer -= dt;
+    if (spawnTimer <= 0 || crystals.length < 18) {
+      if (crystals.length < targetDensity) {
+        spawnFormation();
+        spawnTimer = feverActive ? 0.55 : Math.max(0.65, 1.55 - state.upgrades.richness * 0.06);
+      } else {
+        spawnTimer = 0.45;
+      }
+    }
+
+    cometTimer -= dt;
+    if (cometTimer <= 0) {
+      spawnGoldenComet();
+      cometTimer = feverActive ? rand(4.5, 7) : Math.max(6, rand(12, 18) - state.upgrades.richness * 0.5);
+    }
+
+    // Auto Black Hole (Nova Upgrade or Singularity Relic)
+    const bhRate = relicCount('singularity') > 0
+      ? Math.max(2.2, 6.0 / (1 + (relicCount('singularity') - 1) * 0.5))
+      : (state.upgrades.nova >= 2 ? Math.max(5.5, 13 - state.upgrades.nova * 0.65) : 0);
+    if (bhRate > 0) {
+      autoBlackHoleTimer += dt;
+      if (autoBlackHoleTimer >= bhRate && crystals.length > 8) {
+        autoBlackHoleTimer = 0;
+        const pick = crystals[Math.floor(Math.random() * crystals.length)];
+        if (pick && !pick.dead) {
+          spawnBlackHole(pick.x, pick.y, 185 + state.upgrades.nova * 12, 0.78);
+        }
+      }
+    }
+
+    // Pointer Charge Pull (Hold Left Mouse!)
+    if (pointer.down && !pointer.overHud) {
+      pointer.chargeTime += dt;
+      if (pointer.chargeTime > 0.16) {
+        // Gentle gravitational pull toward cursor while charging!
+        const pullR = getAuraRadius() * 2.2;
+        const pullR2 = pullR * pullR;
+        for (let i = 0; i < crystals.length; i++) {
+          const c = crystals[i];
+          if (c.dead) continue;
+          const dx = pointer.x - c.x;
+          const dy = pointer.y - c.y;
+          const d2 = dx * dx + dy * dy;
+          if (d2 < pullR2 && d2 > 16) {
+            const d = Math.sqrt(d2);
+            c.vx += (dx / d) * 320 * dt;
+            c.vy += (dy / d) * 320 * dt;
+          }
+        }
+      }
+    }
+
+    // Cursor Ribbon Trail
+    cursorTrail.push({ x: pointer.x, y: pointer.y, life: 0.22 });
+    if (cursorTrail.length > 22) cursorTrail.shift();
+    for (let i = cursorTrail.length - 1; i >= 0; i--) {
+      cursorTrail[i].life -= dt;
+      if (cursorTrail[i].life <= 0) cursorTrail.splice(i, 1);
+    }
+
+    // Rebuild Spatial Grid
+    rebuildGrid();
+
+    // 1) Cursor Aura Continuous Slicing!
+    pulseTimer -= dt;
+    if (pulseTimer <= 0 && !pointer.overHud) {
+      pulseTimer = getPulseInterval();
+      const auraR = getAuraRadius();
+      queryCrystals(pointer.x, pointer.y, auraR, queryBuf);
+      const dmg = getBaseDamage();
+      for (let i = 0; i < queryBuf.length; i++) {
+        damageCrystal(queryBuf[i], dmg, 'aura', false);
+      }
+    }
+
+    // 2) Orbiting Saw-Blades!
+    const bladeCount = getTotalBlades();
+    if (bladeCount > 0) {
+      const spinSpeed = (2.8 + state.upgrades.blades * 0.22) * (1 + relicCount('bladeTempest') * 0.5) * (feverActive ? 1.4 : 1);
+      bladeAngle += spinSpeed * dt;
+      const orbitR = getAuraRadius() + 30 + relicCount('bladeTempest') * 8;
+      const bladeHitR = 20 + relicCount('bladeTempest') * 4;
+      const bladeDmg = getBaseDamage() * 1.15;
+      for (let b = 0; b < bladeCount; b++) {
+        const a = bladeAngle + (b / bladeCount) * Math.PI * 2;
+        const bx = pointer.x + Math.cos(a) * orbitR;
+        const by = pointer.y + Math.sin(a) * orbitR;
+        queryCrystals(bx, by, bladeHitR, queryBuf);
+        for (let i = 0; i < queryBuf.length; i++) {
+          damageCrystal(queryBuf[i], bladeDmg, 'blade', false);
+        }
+      }
+    }
+
+    // 3) Autonomous Hunter Drones!
+    syncDrones();
+    for (let i = 0; i < drones.length; i++) {
+      const d = drones[i];
+      d.fireCd -= dt;
+      // Pick high-priority target (Comet > Geode > Bomb/Prism/Vortex > Nearest)
+      let target = null;
+      let bestScore = Infinity;
+      for (let j = 0; j < crystals.length; j++) {
+        const c = crystals[j];
+        if (c.dead) continue;
+        let dist = Math.hypot(c.x - d.x, c.y - d.y);
+        if (c.type === 'comet') dist *= 0.25;
+        else if (c.type === 'geode') dist *= 0.45;
+        else if (c.type !== 'normal') dist *= 0.6;
+        if (dist < bestScore) { bestScore = dist; target = c; }
+      }
+      if (target) {
+        const dx = target.x - d.x;
+        const dy = target.y - d.y;
+        const dist = Math.hypot(dx, dy) || 1;
+        const accel = feverActive ? 1450 : 1050;
+        d.vx += (dx / dist) * accel * dt;
+        d.vy += (dy / dist) * accel * dt;
+        if (dist < target.r + 24 && d.fireCd <= 0) {
+          d.fireCd = feverActive ? 0.1 : 0.18;
+          damageCrystal(target, getBaseDamage() * 1.35, 'drone', false);
+          if (relicCount('hunterSwarm') > 0 && Math.random() < 0.45) {
+            fireChainLightning(d.x, d.y, 2 + state.upgrades.chain, getBaseDamage(), new Set([target.id]));
+          }
+        }
+      }
+      const speed = Math.hypot(d.vx, d.vy);
+      const maxSp = feverActive ? 540 : 390;
+      if (speed > maxSp) { d.vx = (d.vx / speed) * maxSp; d.vy = (d.vy / speed) * maxSp; }
+      d.x += d.vx * dt;
+      d.y += d.vy * dt;
+      d.angle = Math.atan2(d.vy, d.vx);
+      d.trail.push({ x: d.x, y: d.y });
+      if (d.trail.length > 9) d.trail.shift();
+    }
+
+    // 4) Black Holes (Pull & Detonate!)
+    for (let i = blackHoles.length - 1; i >= 0; i--) {
+      const bh = blackHoles[i];
+      bh.life -= dt;
+      bh.rot += dt * 7;
+      const pr2 = bh.pullR * bh.pullR;
+      for (let j = 0; j < crystals.length; j++) {
+        const c = crystals[j];
+        if (c.dead) continue;
+        const dx = bh.x - c.x;
+        const dy = bh.y - c.y;
+        const d2 = dx * dx + dy * dy;
+        if (d2 < pr2 && d2 > 4) {
+          const d = Math.sqrt(d2);
+          const f = (1 - d / bh.pullR) * 950;
+          // Tangential swirl + strong inward pull
+          c.vx += ((dx / d) * f + (-dy / d) * f * 0.45) * dt;
+          c.vy += ((dy / d) * f + (dx / d) * f * 0.45) * dt;
+        }
+      }
+      if (bh.life <= 0) {
+        triggerExplosion(bh.x, bh.y, bh.pullR * 0.92, getBaseDamage() * (4.5 + state.upgrades.nova * 0.6), theme.vortexColor, true);
+        addHitstop(0.025);
+        blackHoles.splice(i, 1);
+      }
+    }
+
+    // 5) Shrapnel Darts (Ricocheting Prism Shards!)
+    for (let i = shrapnels.length - 1; i >= 0; i--) {
+      const s = shrapnels[i];
+      s.life -= dt;
+      s.x += s.vx * dt;
+      s.y += s.vy * dt;
+      if (s.x < 10 || s.x > W - 10) {
+        if (s.bounces > 0) { s.vx *= -1; s.x = clamp(s.x, 10, W - 10); s.bounces--; }
+        else { shrapnels.splice(i, 1); continue; }
+      }
+      if (s.y < 10 || s.y > H - 10) {
+        if (s.bounces > 0) { s.vy *= -1; s.y = clamp(s.y, 10, H - 10); s.bounces--; }
+        else { shrapnels.splice(i, 1); continue; }
+      }
+      queryCrystals(s.x, s.y, s.r + 4, queryBuf);
+      for (let j = 0; j < queryBuf.length; j++) {
+        const c = queryBuf[j];
+        if (s.hitIds.has(c.id)) continue;
+        s.hitIds.add(c.id);
+        damageCrystal(c, s.dmg, 'shrapnel', false);
+        s.pierce--;
+        if (s.pierce <= 0) { s.life = 0; break; }
+      }
+      if (s.life <= 0) shrapnels.splice(i, 1);
+    }
+
+    // 6) Update Crystals (Physics, Soft Separation, Comet Trail)
+    for (let i = crystals.length - 1; i >= 0; i--) {
+      const c = crystals[i];
+      if (c.dead) {
+        crystals.splice(i, 1);
+        continue;
+      }
+      c.age += dt;
+      c.birth = Math.min(1, c.birth + dt * 5.2);
+      c.hitFlash = Math.max(0, c.hitFlash - dt * 6.5);
+      c.wobble = Math.max(0, c.wobble - dt * 5.0);
+      c.rot += c.vRot * dt;
+
+      if (c.type === 'comet') {
+        c.x += c.vx * dt;
+        c.y += c.vy * dt;
+        c.cometTrailTimer += dt;
+        if (c.cometTrailTimer >= 0.14) {
+          c.cometTrailTimer = 0;
+          if (crystals.length < 150) {
+            const g = createCrystal(c.x, c.y, 'gold', 3);
+            g.vx = rand(-18, 18); g.vy = rand(-18, 18);
+          }
+          spawnParticles(c.x, c.y, '#ffe866', 3, 90);
+        }
+        if (c.x < -70 || c.x > W + 70 || c.y < -70 || c.y > H + 70) {
+          crystals.splice(i, 1);
+        }
+        continue;
+      }
+
+      // Gentle float & drag
+      c.vx *= Math.pow(0.24, dt);
+      c.vy *= Math.pow(0.24, dt);
+      c.x += c.vx * dt;
+      c.y += c.vy * dt;
+
+      // Soft screen boundary cushion
+      const padL = 32, padR = W - 32, padT = 82, padB = H - 102;
+      if (c.x < padL) c.vx += (padL - c.x) * 8 * dt;
+      if (c.x > padR) c.vx -= (c.x - padR) * 8 * dt;
+      if (c.y < padT) c.vy += (padT - c.y) * 8 * dt;
+      if (c.y > padB) c.vy -= (c.y - padB) * 8 * dt;
+    }
+
+    // Soft neighbor repulsion (via spatial grid — blazing fast)
+    for (let i = 0; i < crystals.length; i++) {
+      const a = crystals[i];
+      if (a.type === 'comet') continue;
+      queryCrystals(a.x, a.y, a.r + 18, queryBuf);
+      for (let j = 0; j < queryBuf.length; j++) {
+        const b = queryBuf[j];
+        if (b.id <= a.id || b.type === 'comet') continue;
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const d2 = dx * dx + dy * dy;
+        const minD = a.r + b.r + 5;
+        if (d2 > 0.01 && d2 < minD * minD) {
+          const d = Math.sqrt(d2);
+          const push = (minD - d) * 3.8 * dt;
+          const nx = dx / d, ny = dy / d;
+          a.vx -= nx * push * 24;
+          a.vy -= ny * push * 24;
+          b.vx += nx * push * 24;
+          b.vy += ny * push * 24;
+        }
+      }
+    }
+
+    // 7) Collectible Gems (Vacuum Magnet Feel!)
+    const magR = getMagnetRadius();
+    const magR2 = magR * magR;
+    const magSpeed = (760 + state.upgrades.aura * 45) * (1 + relicCount('cosmicMagnet') * 0.9) * (feverActive ? 1.5 : 1);
+    for (let i = gems.length - 1; i >= 0; i--) {
+      const g = gems[i];
+      g.age += dt;
+      const dx = pointer.x - g.x;
+      const dy = pointer.y - g.y;
+      const d2 = dx * dx + dy * dy;
+
+      if (g.age > 0.12 && d2 < magR2) {
+        const d = Math.sqrt(d2) || 1;
+        const pull = magSpeed * (1.25 - 0.5 * (d / magR));
+        g.vx += ((dx / d) * pull - g.vx) * Math.min(1, dt * 13);
+        g.vy += ((dy / d) * pull - g.vy) * Math.min(1, dt * 13);
+      } else {
+        g.vx *= Math.pow(0.08, dt);
+        g.vy *= Math.pow(0.08, dt);
+      }
+
+      g.x += g.vx * dt;
+      g.y += g.vy * dt;
+
+      if (d2 < 30 * 30 || g.age > 9) {
+        awardShards(g.value);
+        sound.playMagnetTick(combo);
+        gems.splice(i, 1);
+      }
+    }
+
+    // 8) Visual FX Decay (Particles, Shockwaves, Bolts, Lasers, Text)
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.life -= dt;
+      if (p.life <= 0) { particles.splice(i, 1); continue; }
+      p.vx *= Math.pow(p.drag, dt * 60);
+      p.vy *= Math.pow(p.drag, dt * 60);
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.rot += p.vRot * dt;
+    }
+
+    for (let i = shockwaves.length - 1; i >= 0; i--) {
+      const sw = shockwaves[i];
+      sw.life -= dt;
+      if (sw.life <= 0) { shockwaves.splice(i, 1); continue; }
+      const p = 1 - sw.life / sw.maxLife;
+      sw.r = sw.maxR * (1 - Math.pow(1 - p, 3));
+    }
+
+    for (let i = bolts.length - 1; i >= 0; i--) {
+      bolts[i].life -= dt;
+      if (bolts[i].life <= 0) bolts.splice(i, 1);
+    }
+
+    for (let i = lasers.length - 1; i >= 0; i--) {
+      lasers[i].life -= dt;
+      if (lasers[i].life <= 0) lasers.splice(i, 1);
+    }
+
+    for (let i = floatTexts.length - 1; i >= 0; i--) {
+      const ft = floatTexts[i];
+      ft.life -= dt;
+      if (ft.life <= 0) { floatTexts.splice(i, 1); continue; }
+      ft.y += ft.vy * dt;
+      ft.vy *= Math.pow(0.18, dt);
+    }
+
+    // Rolling counter & periodic HUD / Save sync
+    displayShards += (state.shards - displayShards) * Math.min(1, dtClamped * 14);
+    if (Math.abs(state.shards - displayShards) < 0.6) displayShards = state.shards;
+
+    hudSyncTimer += dtClamped;
+    if (hudSyncTimer >= 0.08) {
+      hudSyncTimer = 0;
+      syncHud();
+    }
+
+    saveTimer += dtClamped;
+    if (saveTimer >= 5) {
+      saveTimer = 0;
+      saveGame();
+    }
+  }
+
+  /* ============================================================
+   * 12. RENDERING ENGINE (Crisp Faceted Crystals, Bubbles & Glow)
+   * ============================================================ */
+  function drawPolygon(cx, cy, r, sides, rot) {
+    ctx.beginPath();
+    for (let i = 0; i < sides; i++) {
+      const a = rot + (i / sides) * Math.PI * 2;
+      const x = cx + Math.cos(a) * r;
+      const y = cy + Math.sin(a) * r;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+  }
+
+  function drawBackground() {
+    const grad = ctx.createRadialGradient(W * 0.5, H * 0.48, 30, W * 0.5, H * 0.5, Math.max(W, H) * 0.78);
+    grad.addColorStop(0, theme.bgInner);
+    grad.addColorStop(1, theme.bgOuter);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+
+    // Subtle reactive Fever / Combo Aurora Glow
+    if (feverActive || bgPulse > 0.05) {
+      const alpha = feverActive ? (0.14 + Math.sin(globalTime * 5) * 0.04) : bgPulse * 0.08;
+      const ag = ctx.createRadialGradient(pointer.x, pointer.y, 10, pointer.x, pointer.y, Math.max(W, H) * 0.65);
+      ag.addColorStop(0, feverActive ? `rgba(255, 110, 199, ${alpha})` : `rgba(92, 242, 255, ${alpha})`);
+      ag.addColorStop(0.55, `rgba(128, 86, 255, ${alpha * 0.45})`);
+      ag.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = ag;
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    // Crisp Tactile Dot Matrix
+    ctx.fillStyle = theme.gridColor;
+    const step = 46;
+    for (let x = (step / 2); x < W; x += step) {
+      for (let y = (step / 2); y < H; y += step) {
+        ctx.fillRect(x - 1, y - 1, 2, 2);
+      }
+    }
+  }
+
+  function drawCrystal(c) {
+    const birthEase = 1 - Math.pow(1 - c.birth, 3);
+    const wobbleScale = 1 + Math.sin(c.wobble * Math.PI * 3) * 0.14 * c.wobble;
+    const pulse = (c.type === 'bomb' || c.type === 'vortex' || c.type === 'comet')
+      ? (1 + Math.sin(globalTime * 7 + c.id) * 0.07)
+      : 1;
+    const r = c.r * birthEase * wobbleScale * pulse;
+    if (r < 1) return;
+
+    ctx.save();
+    ctx.translate(c.x, c.y);
+
+    // Soft outer halo (cheap & silky — no expensive shadowBlur!)
+    if (!theme.light || c.type !== 'normal') {
+      ctx.beginPath();
+      ctx.arc(0, 0, r * 1.48, 0, Math.PI * 2);
+      ctx.fillStyle = c.color;
+      ctx.globalAlpha = c.type === 'normal' ? 0.12 : 0.22;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
+    const isBubble = (theme.shapeMode === 'bubble' && c.type === 'normal') || c.type === 'vortex';
+
+    if (isBubble) {
+      // Glossy translucent jelly-bubble / vortex orb
+      if (theme.light) {
+        ctx.beginPath();
+        ctx.arc(0, 4, r * 0.96, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(70, 45, 95, 0.10)';
+        ctx.fill();
+      }
+      const g = ctx.createRadialGradient(-r * 0.3, -r * 0.3, r * 0.1, 0, 0, r);
+      g.addColorStop(0, '#ffffff');
+      g.addColorStop(0.28, c.color);
+      g.addColorStop(1, c.color);
+      ctx.beginPath();
+      ctx.arc(0, 0, r, 0, Math.PI * 2);
+      ctx.fillStyle = g;
+      ctx.globalAlpha = theme.light ? 0.88 : 0.82;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.lineWidth = 1.8;
+      ctx.strokeStyle = 'rgba(255,255,255,0.65)';
+      ctx.stroke();
+
+      // Specular crescent highlight
+      ctx.beginPath();
+      ctx.arc(-r * 0.28, -r * 0.28, r * 0.34, Math.PI * 1.05, Math.PI * 1.65);
+      ctx.lineWidth = 2.6;
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = 'rgba(255,255,255,0.88)';
+      ctx.stroke();
+
+      if (c.type === 'vortex') {
+        // Swirling inner galaxy arms
+        ctx.rotate(globalTime * 4.5);
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        for (let k = 0; k < 3; k++) {
+          ctx.rotate((Math.PI * 2) / 3);
+          ctx.beginPath();
+          ctx.arc(r * 0.25, 0, r * 0.36, 0, Math.PI * 1.1);
+          ctx.stroke();
+        }
+      }
+    } else {
+      // Faceted luminous crystal polygon!
+      const sides = c.sides || 6;
+      drawPolygon(0, 0, r, sides, c.rot);
+      ctx.fillStyle = c.color;
+      ctx.globalAlpha = theme.light ? 0.9 : 0.78;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+
+      // Crisp luminous rim
+      ctx.lineWidth = c.type === 'geode' ? 2.8 : 1.7;
+      ctx.strokeStyle = c.hitFlash > 0.2 ? '#ffffff' : 'rgba(255,255,255,0.72)';
+      ctx.stroke();
+
+      // Inner bright facet
+      drawPolygon(0, 0, r * 0.56, sides, c.rot + 0.18);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.28)';
+      ctx.fill();
+
+      // Specular corner glint
+      const a0 = c.rot - Math.PI * 0.65;
+      ctx.beginPath();
+      ctx.arc(Math.cos(a0) * r * 0.46, Math.sin(a0) * r * 0.46, r * 0.16, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,255,255,0.75)';
+      ctx.fill();
+    }
+
+    // Special Type Emblems (Instantly readable at 60fps!)
+    if (c.type === 'bomb') {
+      ctx.beginPath();
+      ctx.arc(0, 0, r * 0.42, 0, Math.PI * 2);
+      ctx.fillStyle = '#fff';
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(0, 0, r * 1.24, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(255, 92, 120, 0.65)';
+      ctx.setLineDash([5, 5]);
+      ctx.lineWidth = 1.6;
+      ctx.stroke();
+      ctx.setLineDash([]);
+    } else if (c.type === 'prism') {
+      // Crossed laser star emblem
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      ctx.moveTo(-r * 0.6, 0); ctx.lineTo(r * 0.6, 0);
+      ctx.moveTo(0, -r * 0.6); ctx.lineTo(0, r * 0.6);
+      ctx.stroke();
+    } else if (c.type === 'geode') {
+      // HP Progress Ring + Fracture Cracks!
+      const ratio = clamp(c.hp / c.maxHp, 0, 1);
+      if (ratio < 0.99) {
+        ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+        ctx.lineWidth = 1.6;
+        const cracks = Math.ceil((1 - ratio) * 5);
+        for (let k = 0; k < cracks; k++) {
+          const ca = c.rot + k * 1.25;
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(Math.cos(ca) * r * 0.48, Math.sin(ca) * r * 0.48);
+          ctx.lineTo(Math.cos(ca + 0.25) * r * 0.85, Math.sin(ca + 0.25) * r * 0.85);
+          ctx.stroke();
+        }
+      }
+      ctx.beginPath();
+      ctx.arc(0, 0, r + 6, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * ratio);
+      ctx.strokeStyle = '#ffd452';
+      ctx.lineWidth = 3.2;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+    } else if (c.type === 'comet') {
+      // Bright glowing star core
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(0, 0, r * 0.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Crisp white hit-flash overlay
+    if (c.hitFlash > 0.05) {
+      ctx.beginPath();
+      ctx.arc(0, 0, r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255,255,255,${c.hitFlash * 0.72})`;
+      ctx.fill();
+    }
+
+    ctx.restore();
+  }
+
+  function drawCursorAndAura() {
+    if (!started || pointer.overHud) return;
+    const x = pointer.x;
+    const y = pointer.y;
+    const auraR = getAuraRadius();
+    const tier = getCursorTier();
+
+    // Smooth Glowing Ribbon Trail
+    if (cursorTrail.length > 2) {
+      ctx.save();
+      ctx.lineCap = 'round';
+      for (let i = 1; i < cursorTrail.length; i++) {
+        const p0 = cursorTrail[i - 1];
+        const p1 = cursorTrail[i];
+        const t = i / cursorTrail.length;
+        ctx.beginPath();
+        ctx.moveTo(p0.x, p0.y);
+        ctx.lineTo(p1.x, p1.y);
+        ctx.strokeStyle = feverActive ? '#ffd452' : theme.auraColor;
+        ctx.globalAlpha = t * 0.35;
+        ctx.lineWidth = t * (8 + tier * 1.5);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    ctx.save();
+    ctx.translate(x, y);
+
+    // Aura translucent fill
+    const ag = ctx.createRadialGradient(0, 0, 4, 0, 0, auraR);
+    ag.addColorStop(0, feverActive ? 'rgba(255, 212, 82, 0.20)' : (theme.light ? 'rgba(255, 91, 155, 0.14)' : 'rgba(92, 242, 255, 0.16)'));
+    ag.addColorStop(0.75, feverActive ? 'rgba(255, 98, 200, 0.08)' : (theme.light ? 'rgba(72, 184, 255, 0.06)' : 'rgba(92, 242, 255, 0.04)'));
+    ag.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.beginPath();
+    ctx.arc(0, 0, auraR, 0, Math.PI * 2);
+    ctx.fillStyle = ag;
+    ctx.fill();
+
+    // Rotating Outer Harvest Ring
+    ctx.save();
+    ctx.rotate(globalTime * (feverActive ? 2.4 : 1.1));
+    ctx.beginPath();
+    ctx.arc(0, 0, auraR, 0, Math.PI * 2);
+    ctx.strokeStyle = feverActive ? '#ffd452' : theme.auraColor;
+    ctx.globalAlpha = 0.65;
+    ctx.lineWidth = 2.2;
+    ctx.setLineDash([12, 8]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+
+    // Evolution Tier Inner Geometry!
+    if (tier >= 2) {
+      ctx.save();
+      ctx.rotate(-globalTime * 1.5);
+      drawPolygon(0, 0, auraR * 0.42, tier >= 4 ? 8 : 6, 0);
+      ctx.strokeStyle = feverActive ? '#ff6ec7' : theme.auraColor;
+      ctx.globalAlpha = 0.35;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // Charge-Slam Expanding Indicator Ring
+    if (pointer.down && pointer.chargeTime > 0.1) {
+      const chargePct = clamp(pointer.chargeTime / 0.7, 0, 1);
+      ctx.beginPath();
+      ctx.arc(0, 0, auraR * (1 + chargePct * 0.85), -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * chargePct);
+      ctx.strokeStyle = '#ffd452';
+      ctx.lineWidth = 4;
+      ctx.stroke();
+    }
+
+    // Crisp Center Reticle Core
+    ctx.beginPath();
+    ctx.arc(0, 0, 6.5 + tier * 0.8, 0, Math.PI * 2);
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = feverActive ? '#ffd452' : theme.auraColor;
+    ctx.stroke();
+
+    ctx.restore();
+
+    // Orbiting Saw-Blades
+    const bladeCount = getTotalBlades();
+    if (bladeCount > 0) {
+      const orbitR = auraR + 30 + relicCount('bladeTempest') * 8;
+      for (let b = 0; b < bladeCount; b++) {
+        const a = bladeAngle + (b / bladeCount) * Math.PI * 2;
+        const bx = x + Math.cos(a) * orbitR;
+        const by = y + Math.sin(a) * orbitR;
+        ctx.save();
+        ctx.translate(bx, by);
+        ctx.rotate(globalTime * 14 + b);
+        const br = 13 + relicCount('bladeTempest') * 2;
+        ctx.beginPath();
+        for (let s = 0; s < 6; s++) {
+          const sa = (s / 6) * Math.PI * 2;
+          ctx.lineTo(Math.cos(sa) * br, Math.sin(sa) * br);
+          ctx.lineTo(Math.cos(sa + 0.35) * (br * 0.45), Math.sin(sa + 0.35) * (br * 0.45));
+        }
+        ctx.closePath();
+        ctx.fillStyle = feverActive ? '#ffd452' : '#ff6ec7';
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.6;
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+  }
+
+  function render() {
+    ctx.save();
+    drawBackground();
+    ctx.translate(shakeX, shakeY);
+
+    // 1) Black Holes (under crystals)
+    for (let i = 0; i < blackHoles.length; i++) {
+      const bh = blackHoles[i];
+      const p = bh.life / bh.maxLife;
+      ctx.save();
+      ctx.translate(bh.x, bh.y);
+      // Gravity field ring
+      ctx.beginPath();
+      ctx.arc(0, 0, bh.pullR * (0.35 + 0.65 * p), 0, Math.PI * 2);
+      ctx.strokeStyle = theme.vortexColor;
+      ctx.globalAlpha = 0.35;
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+      // Dark singularity center + bright accretion rim
+      ctx.globalAlpha = 1;
+      ctx.beginPath();
+      ctx.arc(0, 0, 20 + (1 - p) * 14, 0, Math.PI * 2);
+      ctx.fillStyle = '#090614';
+      ctx.fill();
+      ctx.lineWidth = 3.5;
+      ctx.strokeStyle = '#e08bff';
+      ctx.stroke();
+      // Spinning accretion arcs
+      ctx.rotate(bh.rot);
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      for (let k = 0; k < 3; k++) {
+        ctx.rotate((Math.PI * 2) / 3);
+        ctx.beginPath();
+        ctx.arc(0, 0, 32 + (1 - p) * 12, 0, 1.2);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // 2) Shockwaves
+    for (let i = 0; i < shockwaves.length; i++) {
+      const sw = shockwaves[i];
+      const alpha = sw.life / sw.maxLife;
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(sw.x, sw.y, sw.r, 0, Math.PI * 2);
+      ctx.strokeStyle = sw.color;
+      ctx.globalAlpha = alpha * 0.85;
+      ctx.lineWidth = sw.lineWidth * alpha + 1;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // 3) Crystals
+    for (let i = 0; i < crystals.length; i++) {
+      drawCrystal(crystals[i]);
+    }
+
+    // 4) Additive Light FX (Lasers, Chain Lightning, Shrapnel, Gems, Particles)
+    ctx.save();
+    ctx.globalCompositeOperation = theme.blend;
+
+    // Prism Lasers
+    for (let i = 0; i < lasers.length; i++) {
+      const l = lasers[i];
+      const a = l.life / l.maxLife;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(l.x1, l.y1);
+      ctx.lineTo(l.x2, l.y2);
+      ctx.strokeStyle = l.color;
+      ctx.globalAlpha = a * 0.55;
+      ctx.lineWidth = l.width * a * 1.4;
+      ctx.stroke();
+
+      ctx.strokeStyle = '#ffffff';
+      ctx.globalAlpha = a * 0.95;
+      ctx.lineWidth = l.width * a * 0.42;
+      ctx.stroke();
+    }
+
+    // Chain Lightning Bolts
+    for (let i = 0; i < bolts.length; i++) {
+      const b = bolts[i];
+      const a = b.life / b.maxLife;
+      ctx.beginPath();
+      ctx.moveTo(b.pts[0].x, b.pts[0].y);
+      for (let k = 1; k < b.pts.length; k++) ctx.lineTo(b.pts[k].x, b.pts[k].y);
+      ctx.strokeStyle = b.color;
+      ctx.globalAlpha = a * 0.7;
+      ctx.lineWidth = b.width * 2.2;
+      ctx.stroke();
+      ctx.strokeStyle = '#ffffff';
+      ctx.globalAlpha = a;
+      ctx.lineWidth = b.width * 0.75;
+      ctx.stroke();
+    }
+
+    // Shrapnel Darts
+    for (let i = 0; i < shrapnels.length; i++) {
+      const s = shrapnels[i];
+      const ang = Math.atan2(s.vy, s.vx);
+      ctx.save();
+      ctx.translate(s.x, s.y);
+      ctx.rotate(ang);
+      ctx.globalAlpha = 0.95;
+      ctx.fillStyle = s.color;
+      ctx.beginPath();
+      ctx.moveTo(10, 0);
+      ctx.lineTo(-7, -4.2);
+      ctx.lineTo(-4, 0);
+      ctx.lineTo(-7, 4.2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(2, 0, 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // Collectible Gems / Stardust
+    for (let i = 0; i < gems.length; i++) {
+      const g = gems[i];
+      ctx.globalAlpha = 0.92;
+      ctx.fillStyle = g.color;
+      ctx.beginPath();
+      ctx.moveTo(g.x, g.y - g.r);
+      ctx.lineTo(g.x + g.r * 0.75, g.y);
+      ctx.lineTo(g.x, g.y + g.r);
+      ctx.lineTo(g.x - g.r * 0.75, g.y);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(g.x - 1.2, g.y - 1.2, 2.4, 2.4);
+    }
+
+    // Particles
+    for (let i = 0; i < particles.length; i++) {
+      const p = particles[i];
+      const a = clamp(p.life / p.maxLife, 0, 1);
+      ctx.globalAlpha = a;
+      if (p.shape === 'bubble') {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size * a, 0, Math.PI * 2);
+        ctx.strokeStyle = p.color;
+        ctx.lineWidth = 1.8;
+        ctx.stroke();
+      } else {
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot);
+        const s = p.size * (0.35 + 0.65 * a);
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.moveTo(0, -s);
+        ctx.lineTo(s * 0.8, s * 0.7);
+        ctx.lineTo(-s * 0.8, s * 0.5);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    ctx.restore();
+
+    // 5) Autonomous Hunter Drones
+    for (let i = 0; i < drones.length; i++) {
+      const d = drones[i];
+      if (d.trail.length > 1) {
+        ctx.beginPath();
+        ctx.moveTo(d.trail[0].x, d.trail[0].y);
+        for (let k = 1; k < d.trail.length; k++) ctx.lineTo(d.trail[k].x, d.trail[k].y);
+        ctx.strokeStyle = theme.auraColor;
+        ctx.globalAlpha = 0.35;
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+      ctx.save();
+      ctx.translate(d.x, d.y);
+      ctx.rotate(d.angle);
+      ctx.beginPath();
+      ctx.moveTo(13, 0);
+      ctx.lineTo(-9, -7.5);
+      ctx.lineTo(-5, 0);
+      ctx.lineTo(-9, 7.5);
+      ctx.closePath();
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+      ctx.strokeStyle = theme.auraColor;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // 6) Cursor & Aura & Orbiting Blades
+    drawCursorAndAura();
+
+    // 7) Floating Damage / Value Numbers
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    for (let i = 0; i < floatTexts.length; i++) {
+      const ft = floatTexts[i];
+      const p = ft.life / ft.maxLife;
+      const pop = p > 0.8 ? (1 + (1 - p) * 1.4) : 1;
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, p * 1.6);
+      ctx.font = `900 ${Math.round(14 * ft.scale * pop)}px -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif`;
+      if (!theme.light) {
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = 'rgba(0,0,0,0.45)';
+        ctx.strokeText(ft.text, ft.x, ft.y);
+      }
+      ctx.fillStyle = ft.color;
+      ctx.fillText(ft.text, ft.x, ft.y);
+      ctx.restore();
+    }
+
+    ctx.restore();
+  }
+
+  /* ============================================================
+   * 13. UI & DOM WIRING (Upgrade Dock, Relics, Themes, Sandbox)
+   * ============================================================ */
+  function applyTheme(id) {
+    if (!THEMES[id]) return;
+    state.theme = id;
+    theme = THEMES[id];
+    sound.themeSynth = theme.synth;
+    document.body.classList.toggle('theme-light', theme.light);
+
+    // Recolor & reshape existing crystals smoothly to match the new theme!
+    for (let i = 0; i < crystals.length; i++) {
+      const c = crystals[i];
+      if (c.type === 'normal') {
+        c.color = theme.palette[c.colorIdx % theme.palette.length];
+        c.sides = theme.shapeMode === 'bubble' ? 0 : (theme.shapeMode === 'diamond' ? 4 : (theme.shapeMode === 'hex' ? 6 : (c.id % 2 === 0 ? 6 : 5)));
+      }
+      else if (c.type === 'bomb') c.color = theme.bombColor;
+      else if (c.type === 'prism') c.color = theme.prismColor;
+      else if (c.type === 'vortex') c.color = theme.vortexColor;
+      else if (c.type === 'geode') c.color = theme.geodeColor;
+      else if (c.type === 'comet') c.color = theme.cometColor;
+    }
+
+    // Sync theme selection buttons
+    document.querySelectorAll('[data-theme-id]').forEach(el => {
+      el.classList.toggle('selected', el.dataset.themeId === id);
+    });
+    saveGame();
+  }
+
+  function buildThemeButtons() {
+    const popGrid = document.getElementById('popoverThemeGrid');
+    const startRow = document.getElementById('startThemeRow');
+    popGrid.innerHTML = '';
+    startRow.innerHTML = '';
+    Object.values(THEMES).forEach(t => {
+      const btn1 = document.createElement('button');
+      btn1.className = 'theme-chip' + (t.id === state.theme ? ' selected' : '');
+      btn1.dataset.themeId = t.id;
+      btn1.innerHTML = `<span class="theme-dot" style="background:${t.dot}"></span>${t.name}`;
+      btn1.onclick = () => { sound.init(); sound.playShatter(4); applyTheme(t.id); };
+      popGrid.appendChild(btn1);
+
+      const btn2 = document.createElement('button');
+      btn2.className = 'start-theme-btn' + (t.id === state.theme ? ' selected' : '');
+      btn2.dataset.themeId = t.id;
+      btn2.innerHTML = `<span class="theme-dot" style="background:${t.dot}"></span>${t.name}`;
+      btn2.onclick = () => { sound.init(); sound.playShatter(5); applyTheme(t.id); };
+      startRow.appendChild(btn2);
+    });
+  }
+
+  function buildUpgradeDock() {
+    const dock = document.getElementById('upgradeDock');
+    const tooltip = document.getElementById('upgTooltip');
+    dock.innerHTML = '';
+    UPGRADES.forEach(u => {
+      const btn = document.createElement('button');
+      btn.className = 'upg-card';
+      btn.id = 'upg_' + u.id;
+      btn.innerHTML = `
+        <span class="upg-key">${u.key}</span>
+        <span class="upg-lv" id="upglv_${u.id}">0</span>
+        <span class="upg-icon">${u.icon}</span>
+        <span class="upg-name">${u.name}</span>
+        <span class="upg-cost" id="upgcost_${u.id}">✦ 0</span>
+      `;
+      btn.onclick = () => buyUpgrade(u.id);
+      btn.onmouseenter = () => {
+        const lv = state.upgrades[u.id] || 0;
+        tooltip.innerHTML = `<strong>${u.icon} ${u.name} (Lv.${lv}/${u.max})</strong><br/>${u.desc(lv)}`;
+        tooltip.classList.add('show');
+      };
+      btn.onmouseleave = () => tooltip.classList.remove('show');
+      dock.appendChild(btn);
+    });
+  }
+
+  function buyUpgrade(id) {
+    const u = UPGRADES.find(x => x.id === id);
+    if (!u) return;
+    const lv = state.upgrades[id] || 0;
+    if (lv >= u.max) return;
+    const cost = getUpgradeCost(u);
+    if (state.shards < cost) return;
+
+    state.shards -= cost;
+    state.upgrades[id] = lv + 1;
+    sound.playUpgrade();
+    spawnShockwave(pointer.x, pointer.y, 125, '#ffd452', 3.5);
+    spawnFloatText(pointer.x, pointer.y - 26, `${u.icon} ${u.name} Lv.${lv + 1}!`, '#ffd452', 1.2);
+    syncHud();
+    saveGame();
+
+    // Update tooltip live if hovered
+    const tooltip = document.getElementById('upgTooltip');
+    if (tooltip.classList.contains('show')) {
+      tooltip.innerHTML = `<strong>${u.icon} ${u.name} (Lv.${lv + 1}/${u.max})</strong><br/>${u.desc(lv + 1)}`;
+    }
+  }
+
+  function buyAllAffordable() {
+    let bought = 0;
+    for (let guard = 0; guard < 40; guard++) {
+      // Pick cheapest affordable upgrade for optimal curve
+      let best = null;
+      let bestCost = Infinity;
+      for (const u of UPGRADES) {
+        const lv = state.upgrades[u.id] || 0;
+        if (lv >= u.max) continue;
+        const c = getUpgradeCost(u);
+        if (c <= state.shards && c < bestCost) {
+          best = u; bestCost = c;
+        }
+      }
+      if (!best) break;
+      state.shards -= bestCost;
+      state.upgrades[best.id] = (state.upgrades[best.id] || 0) + 1;
+      bought++;
+    }
+    if (bought > 0) {
+      sound.playUpgrade();
+      spawnShockwave(pointer.x, pointer.y, 160, '#ffd452', 4.5);
+      spawnFloatText(pointer.x, pointer.y - 26, `⚡ 一键升级 ×${bought}!`, '#ffd452', 1.3);
+      syncHud();
+      saveGame();
+    }
+  }
+
+  function updateRelicPendingUI() {
+    const pill = document.getElementById('relicPendingBtn');
+    if (state.pendingRelics > 0) {
+      pill.textContent = `✨ 觉醒遗物已就绪 (×${state.pendingRelics})！点击三选一 (R)`;
+      pill.classList.add('show');
+    } else {
+      pill.classList.remove('show');
+    }
+  }
+
+  function openRelicModal() {
+    if (state.pendingRelics <= 0) return;
+    paused = true;
+    document.body.classList.remove('playing');
+    const modal = document.getElementById('relicModal');
+    const container = document.getElementById('relicCardsContainer');
+    container.innerHTML = '';
+
+    // Pick 3 distinct random relics
+    const pool = [...RELICS].sort(() => Math.random() - 0.5).slice(0, 3);
+    const rarityLabels = { rare: '稀有 · RARE', epic: '史诗 · EPIC', legend: '传说 · LEGEND' };
+
+    pool.forEach((rel, idx) => {
+      const card = document.createElement('button');
+      card.className = `relic-card rarity-${rel.rarity}`;
+      const cur = relicCount(rel.id);
+      card.innerHTML = `
+        <span class="relic-rarity">${rarityLabels[rel.rarity]}</span>
+        <span class="relic-icon">${rel.icon}</span>
+        <span class="relic-name">${rel.name}</span>
+        <span class="relic-desc">${rel.desc}</span>
+        <span class="relic-stack">${cur > 0 ? `已拥有 ×${cur} → 叠加至 ×${cur + 1}` : `按键 [${idx + 1}] 或点击领取`}</span>
+      `;
+      card.onclick = () => selectRelic(rel);
+      container.appendChild(card);
+    });
+
+    modal._choices = pool;
+    modal.classList.add('open');
+  }
+
+  function selectRelic(rel) {
+    state.relics[rel.id] = (state.relics[rel.id] || 0) + 1;
+    state.pendingRelics = Math.max(0, state.pendingRelics - 1);
+    sound.playFeverStart();
+    const modal = document.getElementById('relicModal');
+    modal.classList.remove('open');
+    updateRelicPendingUI();
+    saveGame();
+
+    if (state.pendingRelics > 0) {
+      setTimeout(() => openRelicModal(), 180);
+    } else {
+      paused = false;
+      document.body.classList.add('playing');
+      showBanner(`${rel.icon} 觉醒：${rel.name}`, '力量已全面融入光环！', '#ffd452');
+      spawnShockwave(pointer.x, pointer.y, 240, '#ffd452', 6);
+    }
+    syncHud();
+  }
+
+  function toggleSandboxMode() {
+    sound.init();
+    if (!isSandbox) {
+      savedNormalState = JSON.parse(JSON.stringify(state));
+      isSandbox = true;
+      state.shards = 9999999;
+      state.rank = 18;
+      state.pendingRelics = 0;
+      UPGRADES.forEach(u => state.upgrades[u.id] = Math.min(u.max, 10));
+      state.relics = {
+        hyperPulse: 2, stormLord: 2, kaleidoscope: 1, clusterBombs: 2,
+        singularity: 2, bladeTempest: 2, ricochet: 2, hunterSwarm: 2,
+        midas: 2, endlessFever: 2, seismic: 2, harmonic: 1, superBattery: 2, cosmicMagnet: 2
+      };
+      novaCharge = 100;
+      triggerFever();
+      showBanner('⚡ 极乐无双沙盒已开启 ⚡', '全技能高配拉满 · 随时点击右上角切回正常存档', '#5cf2ff');
+    } else {
+      isSandbox = false;
+      if (savedNormalState) state = savedNormalState;
+      savedNormalState = null;
+      feverActive = false;
+      fever = 0;
+      drones.length = 0;
+      showBanner('已切回正常成长存档', '继续你的爽游晋升之路！', '#ffffff');
+    }
+    document.getElementById('sandboxQuickBtn').classList.toggle('active-pill', isSandbox);
+    document.getElementById('sandboxQuickBtn').textContent = isSandbox ? '↩ 退出沙盒' : '⚡ 爽玩沙盒';
+    document.getElementById('sandboxBadge').style.display = isSandbox ? 'inline-block' : 'none';
+    updateRelicPendingUI();
+    syncHud();
+  }
+
+  function doPrestige() {
+    if (isSandbox || state.rank < 8) return;
+    const nextPrestige = state.prestige + 1;
+    const keepTheme = state.theme;
+    const keepShake = state.shakeOn;
+    const keepNums = state.numsOn;
+    const keepAuto = state.autoRelicPause;
+    const keepStats = { ...state.stats };
+    state = defaultState();
+    state.prestige = nextPrestige;
+    state.theme = keepTheme;
+    state.shakeOn = keepShake;
+    state.numsOn = keepNums;
+    state.autoRelicPause = keepAuto;
+    state.stats = keepStats;
+    fever = 60;
+    novaCharge = 100;
+    drones.length = 0;
+    sound.playSupernova();
+    showBanner(`✦ 超频飞升 ${nextPrestige} 重 ✦`, `永久收益 ×${Math.pow(2.5, nextPrestige).toFixed(1)} · 开局星爆已充能！`, '#ffd452');
+    document.getElementById('settingsPopover').classList.remove('open');
+    updateRelicPendingUI();
+    syncHud();
+    saveGame();
+  }
+
+  function syncHud() {
+    // Shards & rate
+    document.getElementById('shardsDisplay').textContent = fmt(displayShards);
+    const cutoff = globalTime - 3.0;
+    let sum = 0;
+    while (recentEarnings.length && recentEarnings[0].t < cutoff) recentEarnings.shift();
+    for (let i = 0; i < recentEarnings.length; i++) sum += recentEarnings[i].v;
+    document.getElementById('rateDisplay').textContent = `+${fmt(sum / 3)}/s`;
+
+    const pBadge = document.getElementById('prestigeBadge');
+    if (state.prestige > 0 && !isSandbox) {
+      pBadge.style.display = 'inline-block';
+      pBadge.textContent = `飞升 ${state.prestige} · ×${Math.pow(2.5, state.prestige).toFixed(1)}`;
+    } else {
+      pBadge.style.display = 'none';
+    }
+
+    // Rank bar
+    const needXp = getXpForRank(state.rank);
+    const title = RANK_TITLES[Math.min(RANK_TITLES.length - 1, Math.floor((state.rank - 1) / 1.5))];
+    document.getElementById('rankLabel').textContent = `LV.${state.rank}`;
+    document.getElementById('rankTitle').textContent = title;
+    document.getElementById('rankBarFill').style.width = `${clamp((state.xp / needXp) * 100, 0, 100)}%`;
+
+    // Fever bar
+    const feverBox = document.getElementById('feverBox');
+    feverBox.classList.toggle('is-fever', feverActive);
+    document.getElementById('feverBorder').classList.toggle('active', feverActive);
+    document.getElementById('feverBarFill').style.width = `${clamp(fever, 0, 100)}%`;
+    document.getElementById('feverLabel').textContent = feverActive ? '🔥 HYPER FEVER ×3 狂热中！' : '⚡ 狂热充能 FEVER';
+    document.getElementById('feverPct').textContent = feverActive ? `${Math.ceil(feverTimeLeft)}s` : `${Math.floor(fever)}%`;
+
+    // Combo badge
+    const cBadge = document.getElementById('comboBadge');
+    if (combo >= 3) {
+      cBadge.classList.add('visible');
+      document.getElementById('comboNum').textContent = `×${combo}`;
+      document.getElementById('comboMult').textContent = `${(1 + Math.min(4, combo * 0.025)).toFixed(2)}x`;
+      if (comboPopDirty) {
+        comboPopDirty = false;
+        cBadge.classList.remove('pop');
+        void cBadge.offsetWidth;
+        cBadge.classList.add('pop');
+      }
+    } else {
+      cBadge.classList.remove('visible');
+      comboPopDirty = false;
+    }
+
+    // Live Collected Relics Build Strip (updates DOM only when changed)
+    const relicSig = Object.entries(state.relics).filter(([, v]) => v > 0).map(([k, v]) => `${k}:${v}`).join(',');
+    if (relicSig !== lastRelicSignature) {
+      lastRelicSignature = relicSig;
+      const strip = document.getElementById('relicBuildStrip');
+      if (!relicSig) {
+        strip.classList.remove('has-relics');
+        strip.innerHTML = '';
+      } else {
+        strip.classList.add('has-relics');
+        strip.innerHTML = Object.entries(state.relics)
+          .filter(([, v]) => v > 0)
+          .map(([k, v]) => {
+            const def = RELICS.find(r => r.id === k);
+            if (!def) return '';
+            return `<span class="relic-mini-badge" title="${def.name}：${def.desc}">${def.icon}${v > 1 ? `×${v}` : ''}</span>`;
+          }).join('');
+      }
+    }
+
+    // Upgrade cards
+    let anyAffordable = false;
+    for (const u of UPGRADES) {
+      const lv = state.upgrades[u.id] || 0;
+      const card = document.getElementById('upg_' + u.id);
+      const lvEl = document.getElementById('upglv_' + u.id);
+      const costEl = document.getElementById('upgcost_' + u.id);
+      if (!card) continue;
+      lvEl.textContent = lv >= u.max ? 'MAX' : `L${lv}`;
+      if (lv >= u.max) {
+        costEl.textContent = '已满级';
+        card.classList.add('maxed');
+        card.classList.remove('affordable');
+      } else {
+        const cost = getUpgradeCost(u);
+        costEl.textContent = `✦ ${fmt(cost)}`;
+        const can = state.shards >= cost;
+        if (can) anyAffordable = true;
+        card.classList.toggle('affordable', can);
+        card.classList.remove('maxed');
+      }
+    }
+    document.getElementById('buyAllBtn').classList.toggle('can-buy', anyAffordable);
+
+    // Supernova orb
+    const novaBtn = document.getElementById('novaBtn');
+    const pct = Math.floor(novaCharge);
+    document.getElementById('novaFill').style.height = `${pct}%`;
+    document.getElementById('novaPct').textContent = pct >= 100 ? '就绪!' : `${pct}%`;
+    novaBtn.classList.toggle('ready', pct >= 100);
+
+    // Settings popover stats & prestige button
+    document.getElementById('statShattered').textContent = fmt(state.stats.shattered);
+    document.getElementById('statMaxCombo').textContent = state.stats.maxCombo;
+    document.getElementById('statFevers').textContent = state.stats.fevers;
+    const relicTotal = Object.values(state.relics).reduce((a, b) => a + b, 0);
+    document.getElementById('statRelics').textContent = relicTotal;
+
+    const pBtn = document.getElementById('prestigeBtn');
+    if (!isSandbox && state.rank >= 8) {
+      pBtn.disabled = false;
+      pBtn.textContent = `✦ 立即超频飞升（永久收益 ×${Math.pow(2.5, state.prestige + 1).toFixed(1)}）`;
+    } else {
+      pBtn.disabled = true;
+      pBtn.textContent = isSandbox ? '沙盒模式不可飞升' : `✦ 超频飞升（需达到 LV.8，当前 LV.${state.rank}）`;
+    }
+  }
+
+  /* ============================================================
+   * 14. EVENT LISTENERS (Mouse, Touch, Keyboard)
+   * ============================================================ */
+  function isOverInteractiveHud(target) {
+    return !!(target && target.closest && target.closest('.glass-pill, .icon-btn, .popover, .relic-pill, .side-actions, #relicModal, #startOverlay'));
+  }
+
+  window.addEventListener('pointermove', (e) => {
+    pointer.vx = e.clientX - pointer.x;
+    pointer.vy = e.clientY - pointer.y;
+    pointer.x = e.clientX;
+    pointer.y = e.clientY;
+    pointer.active = true;
+    pointer.overHud = isOverInteractiveHud(e.target);
+  });
+
+  window.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0 && e.pointerType === 'mouse') return;
+    pointer.x = e.clientX;
+    pointer.y = e.clientY;
+    pointer.overHud = isOverInteractiveHud(e.target);
+    if (!pointer.overHud) {
+      sound.init();
+      pointer.down = true;
+      pointer.chargeTime = 0;
+      document.getElementById('settingsPopover').classList.remove('open');
+    }
+  });
+
+  window.addEventListener('pointerup', () => {
+    if (pointer.down) {
+      releaseClickPulse(pointer.chargeTime);
+      pointer.down = false;
+      pointer.chargeTime = 0;
+    }
+  });
+
+  window.addEventListener('keydown', (e) => {
+    if (!started) {
+      if (e.code === 'Space' || e.code === 'Enter') startGame();
+      return;
+    }
+    const modal = document.getElementById('relicModal');
+    if (modal.classList.contains('open')) {
+      if (e.key === '1' && modal._choices[0]) selectRelic(modal._choices[0]);
+      if (e.key === '2' && modal._choices[1]) selectRelic(modal._choices[1]);
+      if (e.key === '3' && modal._choices[2]) selectRelic(modal._choices[2]);
+      return;
+    }
+    if (e.code === 'Escape') {
+      document.getElementById('settingsPopover').classList.remove('open');
+      return;
+    }
+    if (e.code === 'Space') {
+      e.preventDefault();
+      triggerSupernova();
+    } else if (e.key >= '1' && e.key <= '8') {
+      const idx = parseInt(e.key, 10) - 1;
+      if (UPGRADES[idx]) buyUpgrade(UPGRADES[idx].id);
+    } else if (e.key.toLowerCase() === 'b') {
+      buyAllAffordable();
+    } else if (e.key.toLowerCase() === 'r' && state.pendingRelics > 0) {
+      openRelicModal();
+    }
+  });
+
+  // UI Button Handlers
+  function startGame() {
+    if (started) return;
+    started = true;
+    sound.init();
+    document.getElementById('startOverlay').classList.add('gone');
+    document.getElementById('gameHud').classList.remove('hidden');
+    document.body.classList.add('playing');
+
+    // Epic Opening Mandala Detonation right on the first click!!
+    sound.playFeverStart();
+    addShake(12);
+    spawnShockwave(W * 0.5, H * 0.5, 290, theme.auraColor, 7);
+    const centerSnap = [...crystals];
+    centerSnap.forEach((c, idx) => {
+      const d = Math.hypot(c.x - W * 0.5, c.y - H * 0.5);
+      delayedEvents.push({
+        t: d / 950 + (idx % 3) * 0.012,
+        fn: () => { if (!c.dead) damageCrystal(c, 50, 'aura', idx % 5 === 0); }
+      });
+    });
+
+    setTimeout(() => {
+      document.getElementById('hintToast').classList.add('fade');
+    }, 6800);
+
+    updateRelicPendingUI();
+    syncHud();
+  }
+
+  document.getElementById('startBtn').onclick = startGame;
+  document.getElementById('novaBtn').onclick = triggerSupernova;
+  document.getElementById('buyAllBtn').onclick = buyAllAffordable;
+  document.getElementById('relicPendingBtn').onclick = openRelicModal;
+  document.getElementById('sandboxQuickBtn').onclick = toggleSandboxMode;
+
+  document.getElementById('soundBtn').onclick = (e) => {
+    sound.enabled = !sound.enabled;
+    e.currentTarget.textContent = sound.enabled ? '🔊' : '🔇';
+    if (sound.enabled) { sound.init(); sound.playShatter(6); }
+  };
+
+  document.getElementById('menuBtn').onclick = (e) => {
+    e.stopPropagation();
+    document.getElementById('settingsPopover').classList.toggle('open');
+  };
+
+  document.getElementById('toggleShakeBtn').onclick = (e) => {
+    state.shakeOn = !state.shakeOn;
+    e.currentTarget.textContent = state.shakeOn ? '开启' : '关闭';
+    e.currentTarget.classList.toggle('on', state.shakeOn);
+    saveGame();
+  };
+
+  document.getElementById('toggleNumsBtn').onclick = (e) => {
+    state.numsOn = !state.numsOn;
+    e.currentTarget.textContent = state.numsOn ? '开启' : '关闭';
+    e.currentTarget.classList.toggle('on', state.numsOn);
+    saveGame();
+  };
+
+  document.getElementById('toggleAutoRelicBtn').onclick = (e) => {
+    state.autoRelicPause = !state.autoRelicPause;
+    e.currentTarget.textContent = state.autoRelicPause ? '开启' : '关闭';
+    e.currentTarget.classList.toggle('on', state.autoRelicPause);
+    saveGame();
+  };
+
+  document.getElementById('prestigeBtn').onclick = doPrestige;
+
+  document.getElementById('resetBtn').onclick = () => {
+    if (!confirm('确定要重置当前进度并重新开始体验升级爽感吗？')) return;
+    isSandbox = false;
+    savedNormalState = null;
+    localStorage.removeItem(SAVE_KEY);
+    const keepTheme = state.theme;
+    state = defaultState();
+    state.theme = keepTheme;
+    displayShards = 0;
+    combo = 0; fever = 0; feverActive = false; novaCharge = 0;
+    drones.length = 0;
+    gems.length = 0;
+    shrapnels.length = 0;
+    blackHoles.length = 0;
+    document.getElementById('sandboxQuickBtn').classList.remove('active-pill');
+    document.getElementById('sandboxQuickBtn').textContent = '⚡ 爽玩沙盒';
+    document.getElementById('sandboxBadge').style.display = 'none';
+    document.getElementById('settingsPopover').classList.remove('open');
+    spawnWelcomeMandala();
+    updateRelicPendingUI();
+    syncHud();
+    showBanner('存档已重置', '全新解压之旅开始！', '#72f4ff');
+  };
+
+  // Sync toggle UI from loaded save
+  function initSettingsToggles() {
+    const sb = document.getElementById('toggleShakeBtn');
+    sb.textContent = state.shakeOn ? '开启' : '关闭';
+    sb.classList.toggle('on', state.shakeOn);
+    const nb = document.getElementById('toggleNumsBtn');
+    nb.textContent = state.numsOn ? '开启' : '关闭';
+    nb.classList.toggle('on', state.numsOn);
+    const ab = document.getElementById('toggleAutoRelicBtn');
+    ab.textContent = state.autoRelicPause ? '开启' : '关闭';
+    ab.classList.toggle('on', state.autoRelicPause);
+  }
+
+  /* ============================================================
+   * 15. BOOTSTRAP & RAF LOOP
+   * ============================================================ */
+  buildThemeButtons();
+  buildUpgradeDock();
+  initSettingsToggles();
+  applyTheme(state.theme);
+  spawnWelcomeMandala();
+
+  let lastFrame = performance.now();
+  function frame(now) {
+    const dt = (now - lastFrame) / 1000;
+    lastFrame = now;
+    update(dt);
+    render();
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
