@@ -264,6 +264,80 @@
     100% { background-position: 200% 50%; }
   }
 
+  /* Zone & Boss Bar */
+  .zone-box {
+    width: 100%;
+    padding: 7px 14px 8px;
+    pointer-events: auto;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  }
+  .zone-box.is-boss {
+    border-color: rgba(255, 84, 118, 0.78);
+    box-shadow: 0 0 24px rgba(255, 74, 110, 0.42);
+  }
+  .zone-box.boss-urgent {
+    animation: bossUrgent 0.45s ease-in-out infinite alternate;
+  }
+  @keyframes bossUrgent {
+    from { border-color: rgba(255, 84, 118, 0.65); }
+    to { border-color: rgba(255, 212, 82, 0.95); box-shadow: 0 0 30px rgba(255, 84, 118, 0.65); }
+  }
+  .zone-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11.5px;
+    font-weight: 800;
+    margin-bottom: 5px;
+    gap: 8px;
+  }
+  .zone-tag {
+    color: var(--accent);
+    letter-spacing: 0.5px;
+  }
+  .zone-box.is-boss .zone-tag {
+    color: #ff6b8b;
+  }
+  .zone-bar-bg {
+    width: 100%;
+    height: 7px;
+    border-radius: 99px;
+    background: rgba(128, 136, 168, 0.22);
+    overflow: hidden;
+  }
+  .zone-bar-fill {
+    height: 100%;
+    width: 0%;
+    border-radius: 99px;
+    background: linear-gradient(90deg, #3be8b0, #5cf2ff);
+    transition: width 0.14s ease-out;
+  }
+  .zone-box.is-boss .zone-bar-fill {
+    background: linear-gradient(90deg, #ff3e6c, #ff9933, #ffd452);
+  }
+  .boss-retry-btn {
+    display: none;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 15px;
+    border-radius: 99px;
+    border: 1.5px solid rgba(255, 110, 140, 0.8);
+    background: linear-gradient(135deg, rgba(255, 62, 108, 0.88), rgba(255, 152, 56, 0.88));
+    color: #fff;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+    pointer-events: auto;
+    box-shadow: 0 4px 18px rgba(255, 74, 110, 0.45);
+    transition: transform 0.14s ease;
+  }
+  .boss-retry-btn.show {
+    display: inline-flex;
+  }
+  .boss-retry-btn:hover {
+    transform: scale(1.06);
+  }
+
   .combo-badge {
     display: inline-flex;
     align-items: baseline;
@@ -527,7 +601,7 @@
   /* Relic Pending Notification Pill */
   .relic-pill {
     position: fixed;
-    top: 112px;
+    top: 156px;
     left: 50%;
     transform: translateX(-50%);
     padding: 9px 20px;
@@ -567,9 +641,9 @@
 
   .upg-card {
     position: relative;
-    width: 82px;
-    min-width: 76px;
-    padding: 7px 6px 6px;
+    width: 84px;
+    min-width: 78px;
+    padding: 7px 6px 8px;
     border-radius: 12px;
     border: 1px solid var(--hud-border);
     background: rgba(128, 136, 168, 0.08);
@@ -579,8 +653,24 @@
     flex-direction: column;
     align-items: center;
     gap: 2px;
+    overflow: hidden;
     transition: transform 0.12s ease, border-color 0.15s ease, background 0.15s ease, box-shadow 0.2s ease;
     text-align: center;
+  }
+  .upg-progress {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    height: 3px;
+    width: 0%;
+    background: linear-gradient(90deg, var(--accent), var(--gold));
+    opacity: 0.78;
+    transition: width 0.15s linear;
+    pointer-events: none;
+  }
+  .upg-card.affordable .upg-progress {
+    width: 100% !important;
+    opacity: 1;
   }
   .upg-card:hover {
     transform: translateY(-3px);
@@ -1085,8 +1175,18 @@
       <div class="relic-build-strip" id="relicBuildStrip"></div>
     </div>
 
-    <!-- Center: Fever & Combo -->
+    <!-- Center: Zone/Boss, Fever & Combo -->
     <div class="center-cluster">
+      <div class="glass-pill zone-box" id="zoneBox">
+        <div class="zone-top">
+          <span class="zone-tag" id="zoneLabel">🗺️ ZONE 1 · 晶域深度</span>
+          <span id="zoneRight">0 / 35</span>
+        </div>
+        <div class="zone-bar-bg">
+          <div class="zone-bar-fill" id="zoneBarFill"></div>
+        </div>
+      </div>
+      <button class="boss-retry-btn" id="bossRetryBtn">⚔️ 挑战当前区域首领</button>
       <div class="glass-pill fever-box" id="feverBox">
         <div class="fever-top">
           <span class="fever-label" id="feverLabel">⚡ 狂热充能 FEVER</span>
@@ -1116,7 +1216,7 @@
 
   <!-- Upgrade Tooltip -->
   <div id="upgTooltip"></div>
-  <div class="hint-toast" id="hintToast">✨ 滑动鼠标即可粉碎晶块 · 点击/长按释放震荡波 · 空格键星爆清屏 · 1-8 快捷升级</div>
+  <div class="hint-toast" id="hintToast">✨ 滑动粉碎晶块 · 长按至金环满松手释放【完美破甲重击】· 击败限时首领挺进更深晶域！</div>
 
   <!-- Bottom Dock -->
   <div class="hud-bottom">
@@ -1573,6 +1673,32 @@
       this.playChord([261.63, 392.00, 523.25, 659.25, 783.99, 1046.5], 0.55, 0.14);
     }
 
+    playArmorClink() {
+      if (!this.ready()) return;
+      const now = this.ctx.currentTime;
+      if (now - this.lastTime.tick < 0.04) return;
+      this.lastTime.tick = now;
+      const osc = this.ctx.createOscillator();
+      const g = this.ctx.createGain();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(1180 + Math.random() * 180, now);
+      osc.frequency.exponentialRampToValueAtTime(640, now + 0.045);
+      g.gain.setValueAtTime(0.055, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+      osc.connect(g);
+      g.connect(this.master);
+      osc.start(now);
+      osc.stop(now + 0.055);
+    }
+
+    playShieldBreak() {
+      this.playChord([440, 554.37, 659.25, 880, 1108.73], 0.34, 0.15);
+    }
+
+    playBossSpawn() {
+      this.playChord([146.83, 220.0, 293.66, 349.23, 440.0], 0.65, 0.16);
+    }
+
     playSupernova() {
       if (!this.ready()) return;
       const now = this.ctx.currentTime;
@@ -1639,43 +1765,43 @@
   const UPGRADES = [
     {
       id: 'aura', key: '1', icon: '⭕', name: '光环范围',
-      max: 15, baseCost: 15, mult: 1.52,
-      desc: (lv) => `扩大滑割光环与磁吸半径（当前 ${Math.round(54 + lv * 12)}px）`
+      max: 25, baseCost: 35, mult: 1.95,
+      desc: (lv) => `扩大滑割光环与磁吸半径（当前 ${Math.round(52 + lv * 8)}px，每5级范围突破）`
     },
     {
-      id: 'pulse', key: '2', icon: '⚡', name: '粉碎频率',
-      max: 15, baseCost: 20, mult: 1.55,
-      desc: (lv) => `提升切割频率与单次威力（当前威力 ${Math.round((1 + lv * 0.55) * 10) / 10}x）`
+      id: 'pulse', key: '2', icon: '⚡', name: '粉碎威力',
+      max: 40, baseCost: 45, mult: 1.92,
+      desc: (lv) => `提升切割频率与破甲伤害（当前倍率 ${((1 + lv * 0.48) * Math.pow(1.28, Math.floor(lv / 5))).toFixed(1)}x，每5级突破）`
     },
     {
       id: 'chain', key: '3', icon: '🌩️', name: '连锁闪电',
-      max: 12, baseCost: 35, mult: 1.62,
-      desc: (lv) => lv === 0 ? '解锁：粉碎晶块时释放连锁电弧弹射周围目标！' : `每次粉碎弹射 ${lv + 1} 个附近晶块并造成连锁爆破`
+      max: 25, baseCost: 220, mult: 2.15,
+      desc: (lv) => lv === 0 ? '解锁：粉碎晶块时释放连锁电弧弹射周围目标！' : `弹射 ${Math.min(14, lv + 1)} 个目标，电弧威力 ${(0.85 + lv * 0.14).toFixed(2)}x`
     },
     {
       id: 'blades', key: '4', icon: '🌀', name: '环绕飞刃',
-      max: 10, baseCost: 50, mult: 1.72,
-      desc: (lv) => lv === 0 ? '解锁：召唤旋转棱镜飞刃围绕鼠标自动收割！' : `当前 ${lv} 把飞刃高速环绕切割`
+      max: 20, baseCost: 420, mult: 2.28,
+      desc: (lv) => lv === 0 ? '解锁：召唤旋转棱镜飞刃围绕鼠标自动收割！' : `环绕 ${Math.min(12, lv)} 把飞刃，切割伤害 ${(0.95 + lv * 0.16).toFixed(2)}x`
     },
     {
       id: 'shrapnel', key: '5', icon: '💎', name: '分裂弹片',
-      max: 12, baseCost: 65, mult: 1.62,
-      desc: (lv) => lv === 0 ? '解锁：碎裂晶块飞溅出反弹全屏的棱镜飞镖！' : `每次碎裂飞溅 ${lv + 1} 枚高速弹射弹片`
+      max: 25, baseCost: 600, mult: 2.20,
+      desc: (lv) => lv === 0 ? '解锁：碎裂晶块飞溅出反弹全屏的棱镜飞镖！' : `每次碎裂飞溅 ${Math.min(10, lv + 1)} 枚弹片，伤害 ${(0.8 + lv * 0.15).toFixed(2)}x`
     },
     {
       id: 'drones', key: '6', icon: '🛸', name: '浮游猎手',
-      max: 10, baseCost: 110, mult: 1.75,
-      desc: (lv) => lv === 0 ? '解锁：派遣智能浮游炮全屏自动追猎巨晶与爆弹！' : `当前 ${lv} 架浮游猎手自主清屏`
+      max: 18, baseCost: 1200, mult: 2.38,
+      desc: (lv) => lv === 0 ? '解锁：派遣智能浮游炮全屏自动追猎首领与巨晶！' : `${Math.min(10, lv)} 架浮游猎手自动狙杀，火力 ${(1.0 + lv * 0.18).toFixed(2)}x`
     },
     {
       id: 'nova', key: '7', icon: '💥', name: '震荡黑洞',
-      max: 12, baseCost: 140, mult: 1.68,
-      desc: (lv) => lv === 0 ? '解锁：自动触发震荡冲击波并周期召唤黑洞漩涡！' : `震荡波威力 +${lv * 25}% 且强化黑洞坍缩爆破`
+      max: 25, baseCost: 1800, mult: 2.28,
+      desc: (lv) => lv === 0 ? '解锁：自动触发震荡冲击波并周期召唤黑洞漩涡！' : `冲击波与黑洞威力 +${Math.round(lv * 22)}%，强力破甲！`
     },
     {
       id: 'richness', key: '8', icon: '👑', name: '丰饶矿脉',
-      max: 15, baseCost: 45, mult: 1.64,
-      desc: (lv) => `晶块收益 ×${(1 + lv * 0.45).toFixed(2)}，大幅提升爆弹/棱镜/黄金流星出现率！`
+      max: 30, baseCost: 130, mult: 2.08,
+      desc: (lv) => `晶尘收益 ×${(1 + lv * 0.24 + Math.floor(lv / 5) * 0.45).toFixed(2)}，提升爆弹/棱镜与黄金流星概率！`
     }
   ];
 
@@ -1749,6 +1875,9 @@
       shards: 0,
       xp: 0,
       rank: 1,
+      zone: 1,
+      zoneKills: 0,
+      bossRetry: false,
       prestige: 0,
       upgrades: { aura: 0, pulse: 0, chain: 0, blades: 0, shrapnel: 0, drones: 0, nova: 0, richness: 0 },
       relics: {},
@@ -1757,7 +1886,7 @@
       shakeOn: true,
       numsOn: true,
       autoRelicPause: true,
-      stats: { shattered: 0, maxCombo: 0, fevers: 0 }
+      stats: { shattered: 0, maxCombo: 0, fevers: 0, maxZone: 1 }
     };
   }
 
@@ -1767,19 +1896,29 @@
   let started = false;
   let paused = false;
 
-  const SAVE_KEY = 'prism_shatter_save_v1';
+  const SAVE_KEY = 'prism_shatter_save_v2';
 
   function loadSave() {
     try {
       const raw = localStorage.getItem(SAVE_KEY);
-      if (!raw) return;
-      const parsed = JSON.parse(raw);
-      if (parsed && typeof parsed === 'object') {
-        state = Object.assign(defaultState(), parsed);
-        state.upgrades = Object.assign(defaultState().upgrades, parsed.upgrades || {});
-        state.stats = Object.assign(defaultState().stats, parsed.stats || {});
-        state.relics = parsed.relics || {};
-        if (!THEMES[state.theme]) state.theme = 'prism';
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') {
+          state = Object.assign(defaultState(), parsed);
+          state.upgrades = Object.assign(defaultState().upgrades, parsed.upgrades || {});
+          state.stats = Object.assign(defaultState().stats, parsed.stats || {});
+          state.relics = parsed.relics || {};
+          if (!THEMES[state.theme]) state.theme = 'prism';
+          return;
+        }
+      }
+      // Preserve theme/UI prefs if upgrading from v1 save
+      const v1 = localStorage.getItem('prism_shatter_save_v1');
+      if (v1) {
+        const p1 = JSON.parse(v1);
+        if (p1 && THEMES[p1.theme]) state.theme = p1.theme;
+        if (typeof p1?.shakeOn === 'boolean') state.shakeOn = p1.shakeOn;
+        if (typeof p1?.numsOn === 'boolean') state.numsOn = p1.numsOn;
       }
     } catch (_) {}
   }
@@ -1849,6 +1988,14 @@
   let comboPopDirty = false;
   let lastRelicSignature = '';
 
+  // Active Zone Boss State
+  let activeBoss = null;
+  let bossTimer = 0;
+  let bossMaxTime = 26;
+  let bossVulnerableTimer = 0;
+  let bossPulseTimer = 0;
+  let bossRegenCount = 0;
+
   function scheduleDelayed(t, fn) {
     if (delayedEvents.length >= 320) return;
     delayedEvents.push({ t, fn });
@@ -1902,17 +2049,30 @@
   }
 
   /* ============================================================
-   * 6. STAT FORMULAS (Snappy Escalation!)
+   * 6. STAT FORMULAS (Deep Economy + Escalating Challenge!)
    * ============================================================ */
   function relicCount(id) { return state.relics[id] || 0; }
 
   function getUpgradeCost(u) {
     const lv = state.upgrades[u.id] || 0;
-    return Math.floor(u.baseCost * Math.pow(u.mult, lv));
+    const tierJump = Math.pow(1.6, Math.floor(lv / 5));
+    return Math.floor(u.baseCost * Math.pow(u.mult, lv) * (1 + lv * 0.28) * tierJump);
+  }
+
+  function getZoneTarget(z = state.zone) {
+    return 45 + (z - 1) * 20;
+  }
+
+  function getZoneHpScale(z = state.zone) {
+    return Math.pow(1.62, z - 1);
+  }
+
+  function getZoneValueScale(z = state.zone) {
+    return Math.pow(1.38, z - 1);
   }
 
   function getXpForRank(r) {
-    return Math.floor(28 * Math.pow(1.42, r - 1));
+    return Math.floor(55 * Math.pow(1.58, r - 1));
   }
 
   function getHarmonicBonus() {
@@ -1922,104 +2082,147 @@
   }
 
   function getAuraRadius() {
-    const base = 54 + state.upgrades.aura * 12;
-    const feverBonus = feverActive ? 1.28 : 1.0;
-    return base * (1 + getHarmonicBonus() * 0.7) * feverBonus;
+    const lv = state.upgrades.aura;
+    const base = 52 + lv * 8 + Math.floor(lv / 5) * 10;
+    const feverBonus = feverActive ? 1.24 : 1.0;
+    return Math.min(230, base * (1 + getHarmonicBonus() * 0.5) * feverBonus);
   }
 
   function getMagnetRadius() {
     if (feverActive) return Math.max(W, H) * 1.4;
-    const base = 135 + state.upgrades.aura * 26;
+    const base = 130 + state.upgrades.aura * 18;
     return base * (1 + relicCount('cosmicMagnet') * 1.15);
   }
 
   function getPulseInterval() {
-    const base = 0.145 / (1 + state.upgrades.pulse * 0.22);
-    const speedMult = (1 + relicCount('hyperPulse') * 0.4 + getHarmonicBonus()) * (feverActive ? 1.6 : 1.0);
-    return Math.max(0.028, base / speedMult);
+    const base = 0.155 / (1 + state.upgrades.pulse * 0.11);
+    const speedMult = (1 + relicCount('hyperPulse') * 0.35 + getHarmonicBonus() * 0.7) * (feverActive ? 1.4 : 1.0);
+    return Math.max(0.04, base / speedMult);
   }
 
   function getBaseDamage() {
-    return (1 + state.upgrades.pulse * 0.55) * (feverActive ? 2.5 : 1.0);
+    const lv = state.upgrades.pulse;
+    const tierBoost = Math.pow(1.28, Math.floor(lv / 5));
+    return (1 + lv * 0.48) * tierBoost * (feverActive ? 1.65 : 1.0) * Math.pow(1.4, state.prestige);
   }
 
   function getCritChance() {
-    return Math.min(0.85, 0.06 + state.upgrades.pulse * 0.015 + relicCount('hyperPulse') * 0.16 + (feverActive ? 0.2 : 0));
+    return Math.min(0.78, 0.06 + state.upgrades.pulse * 0.01 + relicCount('hyperPulse') * 0.16 + (feverActive ? 0.16 : 0));
+  }
+
+  function getComboMultiplier() {
+    return 1 + Math.min(2.2, Math.sqrt(combo) * 0.12);
   }
 
   function getShardMultiplier() {
-    const rich = 1 + state.upgrades.richness * 0.45;
-    const comboMult = 1 + Math.min(4.0, combo * 0.025);
-    const feverMult = feverActive ? 3.0 : 1.0;
-    const midas = 1 + relicCount('midas') * 0.4;
+    const lv = state.upgrades.richness;
+    const rich = 1 + lv * 0.24 + Math.floor(lv / 5) * 0.45;
+    const comboMult = getComboMultiplier();
+    const feverMult = feverActive ? 2.0 : 1.0;
+    const midas = 1 + relicCount('midas') * 0.32;
     const prestigeMult = Math.pow(2.5, state.prestige);
     return rich * comboMult * feverMult * midas * prestigeMult;
   }
 
   function getTotalBlades() {
-    return state.upgrades.blades + relicCount('bladeTempest') * 2;
+    return Math.min(12, state.upgrades.blades + relicCount('bladeTempest') * 2);
   }
 
   function getTotalDrones() {
-    return state.upgrades.drones + relicCount('hunterSwarm') * 2;
+    return Math.min(10, state.upgrades.drones + relicCount('hunterSwarm') * 2);
   }
 
   function getCursorTier() {
-    if (state.rank >= 16) return 5;
-    if (state.rank >= 12) return 4;
-    if (state.rank >= 8) return 3;
-    if (state.rank >= 4) return 2;
+    if (state.zone >= 12 || state.rank >= 16) return 5;
+    if (state.zone >= 8 || state.rank >= 12) return 4;
+    if (state.zone >= 5 || state.rank >= 8) return 3;
+    if (state.zone >= 3 || state.rank >= 4) return 2;
     return 1;
   }
 
   /* ============================================================
-   * 7. SPAWNER & GEOMETRIC FORMATIONS (Tactile & Satisfying!)
+   * 7. SPAWNER, CHALLENGING ARCHETYPES & ZONE BOSS
    * ============================================================ */
   function createCrystal(x, y, type = 'normal', colorIdx = null) {
     const idx = colorIdx !== null ? colorIdx % theme.palette.length : Math.floor(Math.random() * theme.palette.length);
-    const richLv = state.upgrades.richness;
-    let r = rand(15, 22);
-    let hp = 1;
+    const zHp = getZoneHpScale();
+    const zVal = getZoneValueScale();
+    let r = rand(15, 21);
+    let hp = 1.0 * zHp;
+    let armor = 0;
+    let maxArmor = 0;
     let sides = theme.shapeMode === 'bubble' ? 0 : (theme.shapeMode === 'diamond' ? 4 : (theme.shapeMode === 'hex' ? 6 : (Math.random() < 0.5 ? 6 : 5)));
-    let value = 2;
+    let value = 1.5 * zVal;
     let color = theme.palette[idx];
 
     if (type === 'bomb') {
       r = 21;
-      hp = 1.4;
+      hp = 1.5 * zHp;
       sides = 8;
-      value = 6;
+      value = 4.5 * zVal;
       color = theme.bombColor;
     } else if (type === 'prism') {
       r = 20;
-      hp = 1.3;
+      hp = 1.4 * zHp;
       sides = 4;
-      value = 8;
+      value = 5.5 * zVal;
       color = theme.prismColor;
     } else if (type === 'vortex') {
       r = 23;
-      hp = 1.8;
+      hp = 2.0 * zHp;
       sides = 0;
-      value = 10;
+      value = 7.5 * zVal;
       color = theme.vortexColor;
+    } else if (type === 'armored') {
+      r = 24;
+      hp = 1.8 * zHp;
+      armor = 2.4 * zHp;
+      maxArmor = armor;
+      sides = 6;
+      value = 6.5 * zVal;
+      color = '#f59e0b';
+    } else if (type === 'frost') {
+      r = 24;
+      hp = 3.2 * zHp;
+      sides = 6;
+      value = 8.5 * zVal;
+      color = '#7ae8ff';
+    } else if (type === 'swift') {
+      r = 16;
+      hp = 1.7 * zHp;
+      sides = 4;
+      value = 9.0 * zVal;
+      color = '#ff4de8';
     } else if (type === 'geode') {
       r = 35;
-      hp = 6 + Math.min(18, Math.floor(state.rank * 1.1));
+      hp = 11 * zHp;
       sides = 6;
-      value = 26 + richLv * 6;
+      value = 22 * zVal;
       color = theme.geodeColor;
     } else if (type === 'comet') {
       r = 18;
-      hp = 1.2;
+      hp = 1.5 * zHp;
       sides = 4;
-      value = 35;
+      value = 24 * zVal;
       color = theme.cometColor;
     } else if (type === 'gold') {
       r = 13;
-      hp = 1;
+      hp = 0.9 * zHp;
       sides = 4;
-      value = 7;
+      value = 5 * zVal;
       color = '#ffd452';
+    } else if (type === 'boss') {
+      r = 52;
+      hp = 85 * Math.pow(1.88, state.zone - 1);
+      sides = 8;
+      value = 38 * zVal;
+      color = '#ff4070';
+    } else if (type === 'bossNode') {
+      r = 17;
+      hp = 12 * Math.pow(1.75, state.zone - 1);
+      sides = 4;
+      value = 4.5 * zVal;
+      color = '#5cf2ff';
     }
 
     const c = {
@@ -2030,6 +2233,8 @@
       r,
       maxHp: hp,
       hp,
+      armor,
+      maxArmor,
       type,
       sides,
       rot: rand(0, Math.PI * 2),
@@ -2042,28 +2247,31 @@
       age: 0,
       value,
       dead: false,
-      cometTrailTimer: 0
+      cometTrailTimer: 0,
+      orbitAngle: 0,
+      orbitDist: 92,
+      chilled: false
     };
     crystals.push(c);
     return c;
   }
 
   function pickSafeCenter(margin = 110) {
-    const topSafe = 110;
-    const botSafe = 120;
+    const topSafe = 135;
+    const botSafe = 125;
     for (let tries = 0; tries < 8; tries++) {
       const x = rand(margin, Math.max(margin + 10, W - margin));
       const y = rand(topSafe, Math.max(topSafe + 10, H - botSafe));
-      if (distSq(x, y, pointer.x, pointer.y) > 120 * 120) return { x, y };
+      if (distSq(x, y, pointer.x, pointer.y) > 125 * 125) return { x, y };
     }
     return { x: rand(80, W - 80), y: rand(topSafe, H - botSafe) };
   }
 
   function spawnWelcomeMandala() {
     crystals.length = 0;
+    activeBoss = null;
     const cx = W * 0.5;
     const cy = H * 0.5;
-    // Center prism & rings of vibrant crystals so the very first click explodes gloriously!
     createCrystal(cx, cy, 'bomb', 0);
     for (let ring = 1; ring <= 3; ring++) {
       const count = ring * 8;
@@ -2077,21 +2285,29 @@
     }
   }
 
+  function pickFillerType() {
+    const z = state.zone;
+    const r = Math.random();
+    if (z >= 2 && r < Math.min(0.24, 0.08 + (z - 2) * 0.025)) return 'armored';
+    if (z >= 4 && r < 0.30) return 'swift';
+    return 'normal';
+  }
+
   function spawnFormation() {
     const rich = state.upgrades.richness;
-    const rank = state.rank;
-    const specialChance = Math.min(0.65, 0.14 + rich * 0.035 + (feverActive ? 0.22 : 0));
+    const z = state.zone;
+    const specialChance = Math.min(0.58, 0.14 + rich * 0.022 + (feverActive ? 0.18 : 0));
     const roll = Math.random();
     const center = pickSafeCenter(115);
 
-    if (roll < 0.30) {
-      // 1. Honeycomb Cluster (蜂巢群)
-      const rings = Math.random() < 0.45 + (feverActive ? 0.3 : 0) ? 2 : 1;
+    if (roll < 0.28) {
+      // 1. Honeycomb Cluster (with Frost / Bomb / Prism core!)
+      const rings = Math.random() < 0.45 + (feverActive ? 0.25 : 0) ? 2 : 1;
       const step = 38;
       const colorBase = Math.floor(Math.random() * theme.palette.length);
-      const centerType = Math.random() < specialChance
-        ? (Math.random() < 0.55 ? 'bomb' : 'prism')
-        : 'normal';
+      let centerType = 'normal';
+      if (z >= 3 && Math.random() < 0.34) centerType = 'frost';
+      else if (Math.random() < specialChance) centerType = Math.random() < 0.55 ? 'bomb' : 'prism';
       createCrystal(center.x, center.y, centerType, colorBase);
       for (let r = 1; r <= rings; r++) {
         const count = r * 6;
@@ -2099,47 +2315,48 @@
           const a = (i / count) * Math.PI * 2;
           const px = center.x + Math.cos(a) * step * r;
           const py = center.y + Math.sin(a) * step * r;
-          if (px > 35 && px < W - 35 && py > 85 && py < H - 105) {
-            createCrystal(px, py, 'normal', colorBase + r);
+          if (px > 35 && px < W - 35 && py > 110 && py < H - 108) {
+            createCrystal(px, py, pickFillerType(), colorBase + r);
           }
         }
       }
-    } else if (roll < 0.55) {
+    } else if (roll < 0.52) {
       // 2. Golden Spiral (星旋阵)
-      const count = Math.floor(rand(10, feverActive ? 22 : 16));
+      const count = Math.floor(rand(10, feverActive ? 20 : 15));
       const colorBase = Math.floor(Math.random() * theme.palette.length);
       for (let i = 0; i < count; i++) {
         const a = i * 2.39996;
         const dist = 16 * Math.sqrt(i + 1);
         const px = center.x + Math.cos(a) * dist;
         const py = center.y + Math.sin(a) * dist;
-        if (px > 35 && px < W - 35 && py > 85 && py < H - 105) {
-          const t = (i === 0 && Math.random() < specialChance) ? 'prism' : 'normal';
+        if (px > 35 && px < W - 35 && py > 110 && py < H - 108) {
+          const t = (i === 0 && Math.random() < specialChance) ? 'prism' : pickFillerType();
           createCrystal(px, py, t, colorBase + Math.floor(i / 3));
         }
       }
     } else if (roll < 0.76) {
-      // 3. Concentric Ring with Special Core (Geode / Vortex / Bomb)
+      // 3. Concentric Ring with Special Core (Geode / Frost / Vortex / Bomb)
       let coreType = 'bomb';
       const sr = Math.random();
-      if (rank >= 2 && sr < 0.36) coreType = 'geode';
-      else if (rank >= 3 && sr < 0.65) coreType = 'vortex';
-      else if (sr < 0.85) coreType = 'prism';
+      if (z >= 3 && sr < 0.28) coreType = 'frost';
+      else if (sr < 0.55) coreType = 'geode';
+      else if (z >= 2 && sr < 0.76) coreType = 'vortex';
+      else if (sr < 0.90) coreType = 'prism';
 
       createCrystal(center.x, center.y, coreType, 0);
-      const count = Math.floor(rand(8, 14));
+      const count = Math.floor(rand(8, 13));
       const rad = coreType === 'geode' ? 68 : 54;
       const colorBase = Math.floor(Math.random() * theme.palette.length);
       for (let i = 0; i < count; i++) {
         const a = (i / count) * Math.PI * 2;
         const px = center.x + Math.cos(a) * rad;
         const py = center.y + Math.sin(a) * rad;
-        if (px > 35 && px < W - 35 && py > 85 && py < H - 105) {
-          createCrystal(px, py, 'normal', colorBase + (i % 2));
+        if (px > 35 && px < W - 35 && py > 110 && py < H - 108) {
+          createCrystal(px, py, (z >= 2 && i % 3 === 0) ? 'armored' : 'normal', colorBase + (i % 2));
         }
       }
     } else if (roll < 0.90) {
-      // 4. Domino Bomb / Prism Line (连环爆弹阵!)
+      // 4. Domino Bomb / Prism Line
       const horizontal = Math.random() < 0.5;
       const count = feverActive ? 5 : 4;
       const spacing = 54;
@@ -2147,21 +2364,20 @@
         const offset = (i - (count - 1) / 2) * spacing;
         const px = center.x + (horizontal ? offset : rand(-14, 14));
         const py = center.y + (horizontal ? rand(-14, 14) : offset);
-        if (px > 40 && px < W - 40 && py > 90 && py < H - 110) {
-          const t = (i % 2 === 0) ? 'bomb' : (Math.random() < 0.45 ? 'prism' : 'normal');
+        if (px > 40 && px < W - 40 && py > 115 && py < H - 110) {
+          const t = (i % 2 === 0) ? 'bomb' : (Math.random() < 0.45 ? 'prism' : pickFillerType());
           createCrystal(px, py, t, i);
-          // Surround with twin crisp filler crystals
           const ox = horizontal ? 0 : 34;
           const oy = horizontal ? 34 : 0;
-          if (py - oy > 85 && py + oy < H - 105 && px - ox > 35 && px + ox < W - 35) {
-            createCrystal(px + ox, py + oy, 'normal', i + 1);
+          if (py - oy > 110 && py + oy < H - 108 && px - ox > 35 && px + ox < W - 35) {
+            createCrystal(px + ox, py + oy, pickFillerType(), i + 1);
             createCrystal(px - ox, py - oy, 'normal', i + 2);
           }
         }
       }
     } else {
-      // 5. Flowing Ribbon Wave (光浪流)
-      const count = Math.floor(rand(10, 16));
+      // 5. Flowing Ribbon Wave
+      const count = Math.floor(rand(10, 15));
       const angle = rand(0, Math.PI * 2);
       const dx = Math.cos(angle);
       const dy = Math.sin(angle);
@@ -2173,8 +2389,8 @@
         const wave = Math.sin(i * 0.7) * 28;
         const px = center.x + dx * t * 30 + nx * wave;
         const py = center.y + dy * t * 30 + ny * wave;
-        if (px > 35 && px < W - 35 && py > 85 && py < H - 105) {
-          createCrystal(px, py, (i === Math.floor(count / 2) && Math.random() < specialChance) ? 'prism' : 'normal', colorBase + i);
+        if (px > 35 && px < W - 35 && py > 110 && py < H - 108) {
+          createCrystal(px, py, (i === Math.floor(count / 2) && Math.random() < specialChance) ? 'prism' : pickFillerType(), colorBase + i);
         }
       }
     }
@@ -2183,11 +2399,52 @@
   function spawnGoldenComet() {
     const fromLeft = Math.random() < 0.5;
     const x = fromLeft ? -25 : W + 25;
-    const y = rand(120, H - 160);
+    const y = rand(140, H - 160);
     const c = createCrystal(x, y, 'comet', 3);
-    const speed = rand(185, 250);
+    const speed = rand(210, 275);
     c.vx = fromLeft ? speed : -speed;
     c.vy = rand(-38, 38);
+  }
+
+  function spawnBossShieldNodes(boss) {
+    const count = 2 + Math.min(4, Math.floor((state.zone + 1) / 2));
+    for (let i = 0; i < count; i++) {
+      const a = (i / count) * Math.PI * 2;
+      const node = createCrystal(boss.x + Math.cos(a) * 92, boss.y + Math.sin(a) * 92, 'bossNode', i);
+      node.orbitAngle = a;
+      node.orbitDist = 90;
+    }
+  }
+
+  function spawnZoneBoss() {
+    if (activeBoss && !activeBoss.dead) return;
+    // Clear any stray bossNodes first
+    for (let i = crystals.length - 1; i >= 0; i--) {
+      if (crystals[i].type === 'bossNode' || crystals[i].type === 'boss') crystals.splice(i, 1);
+    }
+    const boss = createCrystal(W * 0.5, Math.max(195, H * 0.36), 'boss', 0);
+    boss.vx = 0; boss.vy = 0;
+    activeBoss = boss;
+    bossMaxTime = 26;
+    bossTimer = bossMaxTime;
+    bossVulnerableTimer = 0;
+    bossPulseTimer = 4.8;
+    bossRegenCount = 0;
+    state.bossRetry = false;
+    spawnBossShieldNodes(boss);
+    sound.playBossSpawn();
+    addShake(11);
+    spawnShockwave(boss.x, boss.y, 260, '#ff4070', 7);
+    showBanner(`👑 ZONE ${state.zone} 晶核首领降临！`, '先击破环绕护盾节点触发【破防易伤】· 限时 26 秒！', '#ff5b84');
+    syncHud();
+  }
+
+  function countAliveBossNodes() {
+    let n = 0;
+    for (let i = 0; i < crystals.length; i++) {
+      if (!crystals[i].dead && crystals[i].type === 'bossNode') n++;
+    }
+    return n;
   }
 
   /* ============================================================
@@ -2353,17 +2610,17 @@
   function triggerFever() {
     feverActive = true;
     fever = 100;
-    feverTimeLeft = 11.5 + relicCount('endlessFever') * 4.0;
+    feverTimeLeft = 10.5 + relicCount('endlessFever') * 3.5;
     state.stats.fevers++;
     sound.playFeverStart();
     addShake(11);
     bgPulse = 1.0;
-    showBanner('⚡ HYPER FEVER ×3 ⚡', '全屏磁吸 · 三倍收益 · 狂暴连爆！', '#ffd452');
+    showBanner('⚡ HYPER FEVER ×2 ⚡', '全屏磁吸 · 双倍晶尘 · 破甲狂潮！', '#ffd452');
     spawnShockwave(W * 0.5, H * 0.5, Math.max(W, H) * 0.6, '#ff6ec7', 8);
     // Rain bonus Golden Comets!
     const cometCount = 1 + relicCount('endlessFever');
     for (let i = 0; i < cometCount; i++) {
-      delayedEvents.push({ t: 0.4 + i * 1.4, fn: () => spawnGoldenComet() });
+      scheduleDelayed(0.4 + i * 1.4, () => spawnGoldenComet());
     }
   }
 
@@ -2374,7 +2631,7 @@
     addShake(18);
     timeScale = 0.24;
     bgPulse = 1.2;
-    showBanner('🌟 星爆清屏 · SUPERNOVA 🌟', '万晶俱碎！', '#ffffff');
+    showBanner('🌟 星爆清屏 · SUPERNOVA 🌟', '破甲重创全场！', '#ffffff');
 
     const cx = pointer.x;
     const cy = pointer.y;
@@ -2383,28 +2640,22 @@
     spawnShockwave(cx, cy, maxR * 0.85, '#ff6ec7', 7);
     spawnShockwave(cx, cy, maxR * 0.7, '#62f4ff', 5);
 
-    // Stagger shattering crystals radially from cursor for an UNBELIEVABLE wave ripple!
     const snapshot = crystals.filter(c => !c.dead);
     snapshot.sort((a, b) => distSq(cx, cy, a.x, a.y) - distSq(cx, cy, b.x, b.y));
-    const dmg = getBaseDamage() * 25;
+    const dmg = getBaseDamage() * 14;
     snapshot.forEach((c, idx) => {
       const d = Math.hypot(c.x - cx, c.y - cy);
       const delay = clamp(d / 1600, 0, 0.36) + (idx % 5) * 0.008;
-      delayedEvents.push({
-        t: delay,
-        fn: () => {
-          if (!c.dead) damageCrystal(c, dmg, 'supernova', true);
-        }
+      scheduleDelayed(delay, () => {
+        if (!c.dead) damageCrystal(c, dmg, 'supernova', true, true);
       });
     });
 
-    // Relic synergy: leave 3 Black Holes!
     if (relicCount('superBattery') > 0) {
       for (let i = 0; i < 3; i++) {
         const a = (i / 3) * Math.PI * 2 + Math.random();
-        delayedEvents.push({
-          t: 0.45 + i * 0.12,
-          fn: () => spawnBlackHole(cx + Math.cos(a) * 180, cy + Math.sin(a) * 140, 210, 0.9)
+        scheduleDelayed(0.45 + i * 0.12, () => {
+          spawnBlackHole(cx + Math.cos(a) * 180, cy + Math.sin(a) * 140, 210, 0.9);
         });
       }
     }
@@ -2531,27 +2782,64 @@
     }
   }
 
-  function damageCrystal(c, rawDmg, source = 'aura', forceCrit = false) {
+  function damageCrystal(c, rawDmg, source = 'aura', forceCrit = false, armorPiercing = false) {
     if (c.dead) return;
     let dmg = rawDmg;
     if (c.type === 'geode' && relicCount('geodeCrusher') > 0) {
       dmg *= 2.5 * relicCount('geodeCrusher');
     }
     const isCrit = forceCrit || (Math.random() < getCritChance());
-    if (isCrit) dmg *= 2.6;
+    if (isCrit) dmg *= 2.4;
+
+    // Frost Core chill dampens damage on shielded nearby crystals
+    if (c.chilled && !armorPiercing && source !== 'supernova') {
+      dmg *= 0.65;
+    }
+
+    // Boss shield damage reduction OR vulnerable amplification!
+    if (c.type === 'boss') {
+      if (source === 'shrapnel' || source === 'lightning' || source === 'explosion') dmg *= 0.55;
+      if (countAliveBossNodes() > 0) {
+        dmg *= armorPiercing ? 0.45 : 0.22;
+      } else if (bossVulnerableTimer > 0) {
+        dmg *= 2.2;
+      }
+    }
+
+    // Armored Crystal outer shield mechanic!
+    if (c.armor > 0) {
+      const heavyHit = armorPiercing || isCrit || source === 'explosion' || source === 'laser' || source === 'supernova';
+      const armorDmg = dmg * (heavyHit ? 2.4 : 0.55);
+      c.armor -= armorDmg;
+      c.hitFlash = 1.0;
+      c.wobble = 0.8;
+      if (c.armor > 0) {
+        sound.playArmorClink();
+        spawnParticles(c.x, c.y, '#ffd452', 3, 130);
+        return;
+      }
+      // SHIELD BROKEN!
+      const overflow = -c.armor * 0.5;
+      c.armor = 0;
+      sound.playShieldBreak();
+      spawnShockwave(c.x, c.y, 70, '#ffd452', 4);
+      spawnFloatText(c.x, c.y - 14, '破甲!', '#ffd452', 1.15);
+      dmg = overflow;
+      if (dmg <= 0) return;
+    }
 
     c.hp -= dmg;
     c.hitFlash = 1.0;
     c.wobble = 1.0;
 
     if (c.hp > 0) {
-      sound.playHitTick();
-      spawnParticles(c.x, c.y, c.color, 3, 120);
-      if (c.type === 'geode') {
-        addShake(2.2);
-        // Tiny chip-off gems as you drill into a Mega Geode!
-        if (Math.random() < 0.35) {
-          spawnGems(c.x, c.y, Math.max(1, c.value * 0.08 * getShardMultiplier()), 1, '#ffd452', true);
+      if (c.type === 'boss' && countAliveBossNodes() > 0) sound.playArmorClink();
+      else sound.playHitTick();
+      spawnParticles(c.x, c.y, c.color, c.type === 'boss' ? 5 : 3, 125);
+      if (c.type === 'geode' || c.type === 'boss') {
+        addShake(c.type === 'boss' ? 2.8 : 2.0);
+        if (Math.random() < 0.28) {
+          spawnGems(c.x, c.y, Math.max(1, c.value * 0.05 * getShardMultiplier()), 1, '#ffd452', true);
         }
       }
       return;
@@ -2561,104 +2849,162 @@
     c.dead = true;
     state.stats.shattered++;
     combo++;
-    comboTimer = 2.6;
+    comboTimer = Math.max(1.85, 2.55 - (state.zone - 1) * 0.05);
     if (combo > state.stats.maxCombo) state.stats.maxCombo = combo;
     bgPulse = Math.min(1, bgPulse + 0.08);
-
-    // Mark combo badge for next HUD tick (avoids layout thrashing on multi-kills!)
     comboPopDirty = true;
 
-    // Fever & Supernova Charging
+    // Fever & Supernova Charging (balanced pacing!)
     if (!feverActive) {
-      const feverGain = (c.type === 'geode' ? 8 : c.type === 'normal' ? 1.15 : 2.6) * (1 + relicCount('endlessFever') * 0.4);
+      const baseFever = c.type === 'boss' ? 40 : c.type === 'swift' ? 12 : c.type === 'geode' ? 6 : c.type === 'normal' ? 0.65 : 1.8;
+      const feverGain = baseFever * (1 + relicCount('endlessFever') * 0.4);
       fever = Math.min(100, fever + feverGain);
       if (fever >= 100) triggerFever();
     }
     if (source !== 'supernova') {
-      const novaGain = (c.type === 'geode' ? 7 : 1.1) * (1 + relicCount('superBattery') * 0.55);
+      const baseNova = c.type === 'boss' ? 35 : c.type === 'geode' ? 5.5 : (c.type === 'armored' || c.type === 'frost' || c.type === 'bossNode') ? 2.2 : 0.55;
+      const novaGain = baseNova * (1 + relicCount('superBattery') * 0.55);
       novaCharge = Math.min(100, novaCharge + novaGain);
     }
 
     // Value & XP calculation
     const mult = getShardMultiplier();
-    const midasJackpot = relicCount('midas') > 0 && Math.random() < 0.18;
-    const totalVal = Math.max(1, Math.round(c.value * mult * (isCrit ? 1.5 : 1) * (midasJackpot ? 3 : 1)));
-    const gemCount = c.type === 'geode'
-      ? (14 + relicCount('geodeCrusher') * 8)
-      : c.type === 'comet' ? 14 : (midasJackpot ? 8 : 3);
-    spawnGems(c.x, c.y, totalVal, gemCount, c.color, c.type === 'geode' || c.type === 'comet' || c.type === 'gold' || midasJackpot);
+    const midasJackpot = relicCount('midas') > 0 && Math.random() < 0.16;
+    const totalVal = Math.max(1, Math.round(c.value * mult * (isCrit ? 1.4 : 1) * (midasJackpot ? 2.6 : 1)));
+    const gemCount = c.type === 'boss' ? 22 : c.type === 'geode'
+      ? (12 + relicCount('geodeCrusher') * 6)
+      : c.type === 'comet' ? 12 : (midasJackpot ? 7 : 3);
+    spawnGems(c.x, c.y, totalVal, gemCount, c.color, c.type === 'boss' || c.type === 'geode' || c.type === 'comet' || c.type === 'gold' || midasJackpot);
 
-    addXp(c.type === 'geode' ? 10 : c.type === 'comet' ? 12 : (c.type === 'normal' ? 1 : 3));
+    addXp(c.type === 'boss' ? 28 : c.type === 'geode' ? 9 : c.type === 'comet' ? 10 : (c.type === 'normal' ? 1 : 2.5));
 
     // Audio & Visuals
-    sound.playShatter(combo, isCrit, c.type === 'geode');
-    spawnParticles(c.x, c.y, midasJackpot ? '#ffd452' : c.color, c.type === 'geode' ? 32 : (isCrit ? 14 : 9), c.type === 'geode' ? 330 : 210);
+    sound.playShatter(combo, isCrit, c.type === 'geode' || c.type === 'boss');
+    spawnParticles(c.x, c.y, midasJackpot ? '#ffd452' : c.color, c.type === 'boss' ? 48 : c.type === 'geode' ? 28 : (isCrit ? 13 : 8), c.type === 'boss' ? 420 : c.type === 'geode' ? 310 : 200);
+
+    // Boss Node & Boss Victory & Zone Progress Logic!
+    if (c.type === 'bossNode') {
+      sound.playShieldBreak();
+      spawnShockwave(c.x, c.y, 90, '#5cf2ff', 4);
+      if (activeBoss && !activeBoss.dead && countAliveBossNodes() === 0) {
+        bossVulnerableTimer = 7.5;
+        addHitstop(0.042);
+        addShake(13);
+        spawnShockwave(activeBoss.x, activeBoss.y, 230, '#ffd452', 7);
+        showBanner('⚡ 首领护盾全破 · 2.2倍易伤！', '趁现在全力输出！', '#ffd452');
+      }
+    } else if (c.type === 'boss') {
+      activeBoss = null;
+      bossVulnerableTimer = 0;
+      for (let i = crystals.length - 1; i >= 0; i--) {
+        if (crystals[i].type === 'bossNode') crystals[i].dead = true;
+      }
+      addHitstop(0.055);
+      addShake(20);
+      timeScale = 0.25;
+      spawnShockwave(c.x, c.y, 380, '#ffd452', 10);
+      spawnShockwave(c.x, c.y, 280, '#ff4070', 7);
+      spawnFloatText(c.x, c.y - 16, `BOSS CLEAR +${fmt(totalVal)}!`, '#ffd452', 1.75);
+
+      const clearedZone = state.zone;
+      state.zone++;
+      state.zoneKills = 0;
+      state.bossRetry = false;
+      if (state.zone > (state.stats.maxZone || 1)) state.stats.maxZone = state.zone;
+      state.pendingRelics++;
+      sound.playSupernova();
+      updateRelicPendingUI();
+      showBanner(`👑 ZONE ${clearedZone} 突破！进入 ZONE ${state.zone}`, `晶块强度与收益大幅跃升 · 获赠 1 次觉醒遗物！`, '#ffd452');
+      saveGame();
+      if (state.autoRelicPause && !document.getElementById('relicModal').classList.contains('open')) {
+        setTimeout(() => {
+          if (state.pendingRelics > 0 && started && !paused) openRelicModal();
+        }, 720);
+      }
+    } else {
+      // Advance Zone exploration meter when Boss is not active
+      if (!activeBoss && !state.bossRetry && started) {
+        state.zoneKills++;
+        if (state.zoneKills >= getZoneTarget()) {
+          state.zoneKills = getZoneTarget();
+          scheduleDelayed(0.25, () => {
+            if (!activeBoss && !state.bossRetry && started) spawnZoneBoss();
+          });
+        }
+      }
+    }
 
     if (c.type === 'geode') {
-      addHitstop(0.036);
-      addShake(11);
+      addHitstop(0.032);
+      addShake(10);
       spawnShockwave(c.x, c.y, 175, '#ffd452', 6);
       spawnFloatText(c.x, c.y - 12, `MEGA +${fmt(totalVal)}!`, '#ffd452', 1.45);
     } else if (c.type === 'comet') {
-      addHitstop(0.03);
+      addHitstop(0.028);
       addShake(9);
       spawnShockwave(c.x, c.y, 190, '#ffe866', 6);
       spawnFloatText(c.x, c.y - 12, `JACKPOT +${fmt(totalVal)}!`, '#ffe866', 1.5);
+    } else if (c.type === 'frost') {
+      spawnShockwave(c.x, c.y, 155, '#7ae8ff', 4.5);
+      spawnFloatText(c.x, c.y - 10, `破冰! +${fmt(totalVal)}`, '#7ae8ff', 1.25);
+    } else if (c.type === 'swift') {
+      spawnShockwave(c.x, c.y, 110, '#ff4de8', 4);
+      spawnFloatText(c.x, c.y - 10, `捕获闪灵! +${fmt(totalVal)}`, '#ff77ec', 1.3);
     } else if (midasJackpot) {
       spawnFloatText(c.x, c.y - 8, `黄金爆! +${fmt(totalVal)}`, '#ffd452', 1.25);
     } else if (isCrit) {
       spawnFloatText(c.x, c.y - 6, `CRIT +${fmt(totalVal)}`, '#ff77cb', 1.15);
-    } else if (Math.random() < 0.55) {
+    } else if (Math.random() < 0.5) {
       spawnFloatText(c.x, c.y - 4, `+${fmt(totalVal)}`, theme.light ? '#3d2c54' : '#ffffff', 0.92);
     }
 
     // Special Crystal Chain Behaviors!
     if (c.type === 'bomb') {
-      const blastR = 135 + state.upgrades.nova * 8;
-      triggerExplosion(c.x, c.y, blastR, getBaseDamage() * 3.5, theme.bombColor, true);
+      const blastR = 135 + Math.min(90, state.upgrades.nova * 6);
+      triggerExplosion(c.x, c.y, blastR, getBaseDamage() * (3.2 + state.upgrades.nova * 0.25), theme.bombColor, true);
       if (relicCount('clusterBombs') > 0) {
         const subCount = 2 + Math.min(2, relicCount('clusterBombs') - 1);
         for (let k = 0; k < subCount; k++) {
           const a = rand(0, Math.PI * 2);
           const dist = rand(65, 130);
           const bx = clamp(c.x + Math.cos(a) * dist, 50, W - 50);
-          const by = clamp(c.y + Math.sin(a) * dist, 90, H - 110);
+          const by = clamp(c.y + Math.sin(a) * dist, 110, H - 110);
           scheduleDelayed(0.28 + k * 0.06, () => {
-            triggerExplosion(bx, by, 105, getBaseDamage() * 2.5, theme.bombColor, true);
+            triggerExplosion(bx, by, 105, getBaseDamage() * 2.4, theme.bombColor, true);
           });
         }
       }
     } else if (c.type === 'prism') {
       firePrismLasers(c.x, c.y, getBaseDamage() * 2.5);
     } else if (c.type === 'vortex') {
-      spawnBlackHole(c.x, c.y, 195 + state.upgrades.nova * 10, 0.7);
+      spawnBlackHole(c.x, c.y, 195 + Math.min(90, state.upgrades.nova * 7), 0.7);
     }
 
     // Upgrade Synergies triggered on shatter!
     const chainLv = state.upgrades.chain;
     if (chainLv > 0 && source !== 'lightning' && source !== 'supernova') {
-      const chance = source === 'aura' || source === 'blade' || source === 'drone' ? 0.55 : 0.22;
+      const chance = source === 'aura' || source === 'blade' || source === 'drone' ? 0.52 : 0.2;
       if (Math.random() < chance) {
-        const jumps = chainLv + 1 + relicCount('stormLord') * 3;
+        const jumps = Math.min(14, chainLv + 1) + relicCount('stormLord') * 3;
         const ex = new Set([c.id]);
-        fireChainLightning(c.x, c.y, jumps, getBaseDamage() * (0.9 + chainLv * 0.12), ex);
+        fireChainLightning(c.x, c.y, jumps, getBaseDamage() * (0.85 + chainLv * 0.14), ex);
       }
     }
 
     const shrapLv = state.upgrades.shrapnel;
     if (shrapLv > 0 && source !== 'shrapnel' && source !== 'supernova') {
-      if (Math.random() < (source === 'aura' ? 0.52 : 0.25)) {
-        spawnShrapnel(c.x, c.y, shrapLv + 1, c.color, getBaseDamage() * 0.95);
+      if (Math.random() < (source === 'aura' ? 0.5 : 0.22)) {
+        spawnShrapnel(c.x, c.y, Math.min(10, shrapLv + 1), c.color, getBaseDamage() * (0.8 + shrapLv * 0.15));
       }
     }
 
     // Seismic Resonance Relic / Nova Upgrade auto-shockwave!
     seismicCounter++;
-    const novaThreshold = Math.max(7, 22 - state.upgrades.nova - relicCount('seismic') * 5);
+    const novaThreshold = Math.max(8, 24 - Math.min(10, state.upgrades.nova) - relicCount('seismic') * 4);
     if ((state.upgrades.nova > 0 || relicCount('seismic') > 0) && seismicCounter >= novaThreshold) {
       seismicCounter = 0;
-      const r = 130 + state.upgrades.nova * 14 + relicCount('seismic') * 26;
-      triggerExplosion(pointer.x, pointer.y, r, getBaseDamage() * (1.8 + state.upgrades.nova * 0.35), theme.auraColor, false);
+      const r = 135 + Math.min(100, state.upgrades.nova * 10) + relicCount('seismic') * 24;
+      triggerExplosion(pointer.x, pointer.y, r, getBaseDamage() * (1.5 + state.upgrades.nova * 0.22), theme.auraColor, false);
       spawnShockwave(pointer.x, pointer.y, r, theme.auraColor, 4.5);
     }
   }
@@ -2685,21 +3031,27 @@
 
   function releaseClickPulse(charge) {
     if (!started || paused) return;
-    const isSlam = charge >= 0.32;
-    const power = isSlam ? clamp(1 + charge * 1.4, 1.3, 2.8) : 1.0;
-    const r = getAuraRadius() * (isSlam ? 1.85 + Math.min(0.8, charge) : 1.35);
-    const dmg = getBaseDamage() * (isSlam ? 3.2 * power : 1.8);
-    spawnShockwave(pointer.x, pointer.y, r, isSlam ? '#ffd452' : theme.auraColor, isSlam ? 6 : 3.5);
-    if (isSlam) {
-      sound.playBomb(1.1);
-      addShake(8);
+    const isPerfect = charge >= 0.48 && charge <= 1.25;
+    const isSlam = charge >= 0.30;
+    const power = isPerfect ? 2.6 : (isSlam ? clamp(1 + charge * 1.2, 1.3, 2.2) : 1.0);
+    const r = getAuraRadius() * (isPerfect ? 2.3 : (isSlam ? 1.85 : 1.32));
+    const dmg = getBaseDamage() * (isPerfect ? 4.6 : (isSlam ? 2.8 * power : 1.65));
+    spawnShockwave(pointer.x, pointer.y, r, isPerfect ? '#ffffff' : (isSlam ? '#ffd452' : theme.auraColor), isPerfect ? 8 : (isSlam ? 5.5 : 3.5));
+    if (isPerfect) {
+      spawnShockwave(pointer.x, pointer.y, r * 0.78, '#ffd452', 5);
+      spawnFloatText(pointer.x, pointer.y - 26, '⚡ 完美破甲重击!', '#ffd452', 1.35);
+      sound.playBomb(1.25);
+      addShake(11);
+    } else if (isSlam) {
+      sound.playBomb(1.0);
+      addShake(7);
     } else {
       sound.playShatter(combo + 2, false, false);
-      addShake(2.5);
+      addShake(2.2);
     }
     const hits = queryCrystals(pointer.x, pointer.y, r, []);
     for (let i = 0; i < hits.length; i++) {
-      damageCrystal(hits[i], dmg, 'aura', isSlam);
+      damageCrystal(hits[i], dmg, 'aura', isSlam, isPerfect || isSlam);
     }
   }
 
@@ -2778,13 +3130,75 @@
       }
     }
 
+    // Active Zone Boss AI, Shield Orbit & Countdown!
+    if (activeBoss && !activeBoss.dead) {
+      bossTimer -= dtClamped;
+      const cx = W * 0.5 + Math.sin(globalTime * 0.85) * Math.min(180, W * 0.16);
+      const cy = Math.max(195, H * 0.36) + Math.sin(globalTime * 1.7) * 32;
+      activeBoss.x += (cx - activeBoss.x) * Math.min(1, dt * 4.5);
+      activeBoss.y += (cy - activeBoss.y) * Math.min(1, dt * 4.5);
+      activeBoss.vx = 0; activeBoss.vy = 0;
+
+      // Orbit Shield Nodes tightly around Boss
+      const nodeSpin = 1.45 + Math.min(1.2, state.zone * 0.08);
+      for (let i = 0; i < crystals.length; i++) {
+        const n = crystals[i];
+        if (!n.dead && n.type === 'bossNode') {
+          n.orbitAngle += nodeSpin * dt;
+          n.x = activeBoss.x + Math.cos(n.orbitAngle) * n.orbitDist;
+          n.y = activeBoss.y + Math.sin(n.orbitAngle) * n.orbitDist;
+          n.vx = 0; n.vy = 0;
+        }
+      }
+
+      if (bossVulnerableTimer > 0) {
+        bossVulnerableTimer -= dt;
+        if (bossVulnerableTimer <= 0 && bossRegenCount < 1) {
+          bossRegenCount++;
+          spawnBossShieldNodes(activeBoss);
+          sound.playBossSpawn();
+          spawnShockwave(activeBoss.x, activeBoss.y, 180, '#5cf2ff', 5);
+          spawnFloatText(activeBoss.x, activeBoss.y - 48, '护盾重构！', '#5cf2ff', 1.3);
+        }
+      }
+
+      bossPulseTimer -= dt;
+      if (bossPulseTimer <= 0) {
+        bossPulseTimer = 5.4;
+        spawnShockwave(activeBoss.x, activeBoss.y, 240, '#ff4070', 4.5);
+        for (let i = 0; i < crystals.length; i++) {
+          const c = crystals[i];
+          if (c.dead || c.type === 'boss' || c.type === 'bossNode') continue;
+          const dx = c.x - activeBoss.x, dy = c.y - activeBoss.y;
+          const d = Math.hypot(dx, dy) || 1;
+          if (d < 240) {
+            c.vx += (dx / d) * 260;
+            c.vy += (dy / d) * 260;
+          }
+        }
+      }
+
+      // Boss Escaped if countdown reaches 0!
+      if (bossTimer <= 0) {
+        spawnShockwave(activeBoss.x, activeBoss.y, 300, '#ff4070', 6);
+        activeBoss.dead = true;
+        activeBoss = null;
+        for (let i = 0; i < crystals.length; i++) {
+          if (crystals[i].type === 'bossNode') crystals[i].dead = true;
+        }
+        state.bossRetry = true;
+        saveGame();
+        showBanner('⏳ 首领已撤离！', '强化技能与遗物后，点击上方【挑战首领】再次出击！', '#ff7b8a');
+      }
+    }
+
     // Spawn Formations & Golden Comets
-    const targetDensity = (feverActive ? 92 : 44) + state.upgrades.richness * 4 + Math.min(35, state.rank * 2);
+    const targetDensity = (feverActive ? 88 : 42) + Math.min(40, state.upgrades.richness * 2) + Math.min(30, state.zone * 2);
     spawnTimer -= dt;
     if (spawnTimer <= 0 || crystals.length < 18) {
       if (crystals.length < targetDensity) {
         spawnFormation();
-        spawnTimer = feverActive ? 0.55 : Math.max(0.65, 1.55 - state.upgrades.richness * 0.06);
+        spawnTimer = feverActive ? 0.58 : Math.max(0.68, 1.55 - state.upgrades.richness * 0.04);
       } else {
         spawnTimer = 0.45;
       }
@@ -2793,20 +3207,20 @@
     cometTimer -= dt;
     if (cometTimer <= 0) {
       spawnGoldenComet();
-      cometTimer = feverActive ? rand(4.5, 7) : Math.max(6, rand(12, 18) - state.upgrades.richness * 0.5);
+      cometTimer = feverActive ? rand(5, 8) : Math.max(8, rand(15, 22) - state.upgrades.richness * 0.35);
     }
 
     // Auto Black Hole (Nova Upgrade or Singularity Relic)
     const bhRate = relicCount('singularity') > 0
-      ? Math.max(2.2, 6.0 / (1 + (relicCount('singularity') - 1) * 0.5))
-      : (state.upgrades.nova >= 2 ? Math.max(5.5, 13 - state.upgrades.nova * 0.65) : 0);
+      ? Math.max(2.4, 6.2 / (1 + (relicCount('singularity') - 1) * 0.5))
+      : (state.upgrades.nova >= 2 ? Math.max(5.5, 13.5 - state.upgrades.nova * 0.45) : 0);
     if (bhRate > 0) {
       autoBlackHoleTimer += dt;
       if (autoBlackHoleTimer >= bhRate && crystals.length > 8) {
         autoBlackHoleTimer = 0;
         const pick = crystals[Math.floor(Math.random() * crystals.length)];
         if (pick && !pick.dead) {
-          spawnBlackHole(pick.x, pick.y, 185 + state.upgrades.nova * 12, 0.78);
+          spawnBlackHole(pick.x, pick.y, 185 + Math.min(90, state.upgrades.nova * 7), 0.78);
         }
       }
     }
@@ -2815,12 +3229,11 @@
     if (pointer.down && !pointer.overHud) {
       pointer.chargeTime += dt;
       if (pointer.chargeTime > 0.16) {
-        // Gentle gravitational pull toward cursor while charging!
         const pullR = getAuraRadius() * 2.2;
         const pullR2 = pullR * pullR;
         for (let i = 0; i < crystals.length; i++) {
           const c = crystals[i];
-          if (c.dead) continue;
+          if (c.dead || c.type === 'boss' || c.type === 'bossNode') continue;
           const dx = pointer.x - c.x;
           const dy = pointer.y - c.y;
           const d2 = dx * dx + dy * dy;
@@ -2844,6 +3257,20 @@
     // Rebuild Spatial Grid
     rebuildGrid();
 
+    // Frost Core Aura: chill & gently heal crystals within 155px of any Frost Core!
+    for (let i = 0; i < crystals.length; i++) crystals[i].chilled = false;
+    for (let i = 0; i < crystals.length; i++) {
+      const f = crystals[i];
+      if (f.dead || f.type !== 'frost') continue;
+      queryCrystals(f.x, f.y, 155, queryBuf);
+      for (let j = 0; j < queryBuf.length; j++) {
+        const t = queryBuf[j];
+        if (t.id === f.id || t.type === 'boss') continue;
+        t.chilled = true;
+        if (t.hp < t.maxHp) t.hp = Math.min(t.maxHp, t.hp + t.maxHp * 0.055 * dt);
+      }
+    }
+
     // 1) Cursor Aura Continuous Slicing!
     pulseTimer -= dt;
     if (pulseTimer <= 0 && !pointer.overHud) {
@@ -2859,11 +3286,11 @@
     // 2) Orbiting Saw-Blades!
     const bladeCount = getTotalBlades();
     if (bladeCount > 0) {
-      const spinSpeed = (2.8 + state.upgrades.blades * 0.22) * (1 + relicCount('bladeTempest') * 0.5) * (feverActive ? 1.4 : 1);
+      const spinSpeed = (2.8 + Math.min(3.5, state.upgrades.blades * 0.2)) * (1 + relicCount('bladeTempest') * 0.5) * (feverActive ? 1.35 : 1);
       bladeAngle += spinSpeed * dt;
       const orbitR = getAuraRadius() + 30 + relicCount('bladeTempest') * 8;
-      const bladeHitR = 20 + relicCount('bladeTempest') * 4;
-      const bladeDmg = getBaseDamage() * 1.15;
+      const bladeHitR = 20 + Math.min(12, Math.floor(state.upgrades.blades / 3) * 2) + relicCount('bladeTempest') * 4;
+      const bladeDmg = getBaseDamage() * (0.95 + state.upgrades.blades * 0.16);
       for (let b = 0; b < bladeCount; b++) {
         const a = bladeAngle + (b / bladeCount) * Math.PI * 2;
         const bx = pointer.x + Math.cos(a) * orbitR;
@@ -2877,17 +3304,20 @@
 
     // 3) Autonomous Hunter Drones!
     syncDrones();
+    const droneDmg = getBaseDamage() * (1.0 + state.upgrades.drones * 0.18);
     for (let i = 0; i < drones.length; i++) {
       const d = drones[i];
       d.fireCd -= dt;
-      // Pick high-priority target (Comet > Geode > Bomb/Prism/Vortex > Nearest)
       let target = null;
       let bestScore = Infinity;
       for (let j = 0; j < crystals.length; j++) {
         const c = crystals[j];
         if (c.dead) continue;
         let dist = Math.hypot(c.x - d.x, c.y - d.y);
-        if (c.type === 'comet') dist *= 0.25;
+        if (c.type === 'bossNode') dist *= 0.16;
+        else if (c.type === 'boss') dist *= 0.22;
+        else if (c.type === 'frost') dist *= 0.28;
+        else if (c.type === 'comet') dist *= 0.3;
         else if (c.type === 'geode') dist *= 0.45;
         else if (c.type !== 'normal') dist *= 0.6;
         if (dist < bestScore) { bestScore = dist; target = c; }
@@ -2896,19 +3326,19 @@
         const dx = target.x - d.x;
         const dy = target.y - d.y;
         const dist = Math.hypot(dx, dy) || 1;
-        const accel = feverActive ? 1450 : 1050;
+        const accel = feverActive ? 1450 : 1080;
         d.vx += (dx / dist) * accel * dt;
         d.vy += (dy / dist) * accel * dt;
-        if (dist < target.r + 24 && d.fireCd <= 0) {
-          d.fireCd = feverActive ? 0.1 : 0.18;
-          damageCrystal(target, getBaseDamage() * 1.35, 'drone', false);
+        if (dist < target.r + 26 && d.fireCd <= 0) {
+          d.fireCd = Math.max(0.08, (feverActive ? 0.1 : 0.19) - state.upgrades.drones * 0.005);
+          damageCrystal(target, droneDmg, 'drone', false);
           if (relicCount('hunterSwarm') > 0 && Math.random() < 0.45) {
-            fireChainLightning(d.x, d.y, 2 + state.upgrades.chain, getBaseDamage(), new Set([target.id]));
+            fireChainLightning(d.x, d.y, 2 + Math.min(10, state.upgrades.chain), getBaseDamage(), new Set([target.id]));
           }
         }
       }
       const speed = Math.hypot(d.vx, d.vy);
-      const maxSp = feverActive ? 540 : 390;
+      const maxSp = feverActive ? 540 : 400;
       if (speed > maxSp) { d.vx = (d.vx / speed) * maxSp; d.vy = (d.vy / speed) * maxSp; }
       d.x += d.vx * dt;
       d.y += d.vy * dt;
@@ -2925,20 +3355,19 @@
       const pr2 = bh.pullR * bh.pullR;
       for (let j = 0; j < crystals.length; j++) {
         const c = crystals[j];
-        if (c.dead) continue;
+        if (c.dead || c.type === 'boss' || c.type === 'bossNode') continue;
         const dx = bh.x - c.x;
         const dy = bh.y - c.y;
         const d2 = dx * dx + dy * dy;
         if (d2 < pr2 && d2 > 4) {
           const d = Math.sqrt(d2);
           const f = (1 - d / bh.pullR) * 950;
-          // Tangential swirl + strong inward pull
           c.vx += ((dx / d) * f + (-dy / d) * f * 0.45) * dt;
           c.vy += ((dy / d) * f + (dx / d) * f * 0.45) * dt;
         }
       }
       if (bh.life <= 0) {
-        triggerExplosion(bh.x, bh.y, bh.pullR * 0.92, getBaseDamage() * (4.5 + state.upgrades.nova * 0.6), theme.vortexColor, true);
+        triggerExplosion(bh.x, bh.y, bh.pullR * 0.92, getBaseDamage() * (4.2 + state.upgrades.nova * 0.65), theme.vortexColor, true);
         addHitstop(0.025);
         blackHoles.splice(i, 1);
       }
@@ -2970,7 +3399,7 @@
       if (s.life <= 0) shrapnels.splice(i, 1);
     }
 
-    // 6) Update Crystals (Physics, Soft Separation, Comet Trail)
+    // 6) Update Crystals (Physics, Swift Evasion, Soft Separation, Comet Trail)
     for (let i = crystals.length - 1; i >= 0; i--) {
       const c = crystals[i];
       if (c.dead) {
@@ -2982,6 +3411,8 @@
       c.hitFlash = Math.max(0, c.hitFlash - dt * 6.5);
       c.wobble = Math.max(0, c.wobble - dt * 5.0);
       c.rot += c.vRot * dt;
+
+      if (c.type === 'boss' || c.type === 'bossNode') continue;
 
       if (c.type === 'comet') {
         c.x += c.vx * dt;
@@ -3001,6 +3432,18 @@
         continue;
       }
 
+      // Swift Dart Crystal dodges away when cursor approaches!
+      if (c.type === 'swift' && !pointer.overHud) {
+        const dx = c.x - pointer.x;
+        const dy = c.y - pointer.y;
+        const d2 = dx * dx + dy * dy;
+        if (d2 < 145 * 145 && d2 > 9) {
+          const d = Math.sqrt(d2);
+          c.vx += (dx / d) * 620 * dt;
+          c.vy += (dy / d) * 620 * dt;
+        }
+      }
+
       // Gentle float & drag
       c.vx *= Math.pow(0.24, dt);
       c.vy *= Math.pow(0.24, dt);
@@ -3018,11 +3461,11 @@
     // Soft neighbor repulsion (via spatial grid — blazing fast)
     for (let i = 0; i < crystals.length; i++) {
       const a = crystals[i];
-      if (a.type === 'comet') continue;
+      if (a.type === 'comet' || a.type === 'boss' || a.type === 'bossNode') continue;
       queryCrystals(a.x, a.y, a.r + 18, queryBuf);
       for (let j = 0; j < queryBuf.length; j++) {
         const b = queryBuf[j];
-        if (b.id <= a.id || b.type === 'comet') continue;
+        if (b.id <= a.id || b.type === 'comet' || b.type === 'boss' || b.type === 'bossNode') continue;
         const dx = b.x - a.x;
         const dy = b.y - a.y;
         const d2 = dx * dx + dy * dy;
@@ -3305,11 +3748,103 @@
       ctx.lineCap = 'round';
       ctx.stroke();
     } else if (c.type === 'comet') {
-      // Bright glowing star core
       ctx.fillStyle = '#ffffff';
       ctx.beginPath();
       ctx.arc(0, 0, r * 0.5, 0, Math.PI * 2);
       ctx.fill();
+    } else if (c.type === 'armored') {
+      // Metallic double armor frame + shield bar!
+      if (c.armor > 0) {
+        drawPolygon(0, 0, r + 4.5, 6, c.rot);
+        ctx.strokeStyle = '#ffd452';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        const aRatio = clamp(c.armor / Math.max(1, c.maxArmor), 0, 1);
+        ctx.beginPath();
+        ctx.arc(0, 0, r + 9, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * aRatio);
+        ctx.strokeStyle = '#ffd452';
+        ctx.lineWidth = 2.6;
+        ctx.stroke();
+      }
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      ctx.font = '900 12px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(c.armor > 0 ? '🛡' : '!', 0, 1);
+    } else if (c.type === 'frost') {
+      // Crisp 6-spoke ice snowflake emblem
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      for (let k = 0; k < 3; k++) {
+        const a = c.rot + (k * Math.PI) / 3;
+        ctx.beginPath();
+        ctx.moveTo(-Math.cos(a) * r * 0.62, -Math.sin(a) * r * 0.62);
+        ctx.lineTo(Math.cos(a) * r * 0.62, Math.sin(a) * r * 0.62);
+        ctx.stroke();
+      }
+    } else if (c.type === 'swift') {
+      ctx.beginPath();
+      ctx.arc(0, 0, r * 1.25, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(255, 77, 232, 0.72)';
+      ctx.lineWidth = 1.6;
+      ctx.setLineDash([4, 4]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    } else if (c.type === 'bossNode') {
+      ctx.beginPath();
+      ctx.arc(0, 0, r + 4, 0, Math.PI * 2);
+      ctx.strokeStyle = '#5cf2ff';
+      ctx.lineWidth = 2.2;
+      ctx.stroke();
+      const nr = clamp(c.hp / c.maxHp, 0, 1);
+      ctx.beginPath();
+      ctx.arc(0, 0, r + 8, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * nr);
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2.4;
+      ctx.stroke();
+    } else if (c.type === 'boss') {
+      const ratio = clamp(c.hp / c.maxHp, 0, 1);
+      const shielded = countAliveBossNodes() > 0;
+      // Outer dome shield when nodes are alive OR vulnerable golden pulse when shield-broken!
+      ctx.beginPath();
+      ctx.arc(0, 0, r + 13, 0, Math.PI * 2);
+      ctx.strokeStyle = shielded ? 'rgba(92, 242, 255, 0.78)' : '#ffd452';
+      ctx.lineWidth = shielded ? 3.5 : 4.5;
+      if (!shielded) ctx.setLineDash([10, 6]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      // Circular HP ring
+      ctx.beginPath();
+      ctx.arc(0, 0, r + 6, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * ratio);
+      ctx.strokeStyle = shielded ? '#ff6b8b' : '#ffd452';
+      ctx.lineWidth = 5;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+      // Center crown/status icon
+      ctx.font = '900 22px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(shielded ? '👑' : '💥', 0, 1);
+    }
+
+    // Chilled icy frost rim on buffed crystals
+    if (c.chilled) {
+      ctx.beginPath();
+      ctx.arc(0, 0, r + 3, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(122, 232, 255, 0.75)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    // Subtle HP arc on damaged tough normal/frost/armored crystals (Zone 2+ feedback!)
+    if (c.hp < c.maxHp && c.type !== 'geode' && c.type !== 'boss' && c.type !== 'bossNode') {
+      const hr = clamp(c.hp / c.maxHp, 0, 1);
+      ctx.beginPath();
+      ctx.arc(0, 0, r + 4, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * hr);
+      ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+      ctx.lineWidth = 2.2;
+      ctx.stroke();
     }
 
     // Crisp white hit-flash overlay
@@ -3387,14 +3922,22 @@
       ctx.restore();
     }
 
-    // Charge-Slam Expanding Indicator Ring
+    // Charge-Slam Expanding Indicator Ring (glows radiant white-gold in Perfect window!)
     if (pointer.down && pointer.chargeTime > 0.1) {
-      const chargePct = clamp(pointer.chargeTime / 0.7, 0, 1);
+      const chargePct = clamp(pointer.chargeTime / 0.55, 0, 1);
+      const isPerfect = pointer.chargeTime >= 0.48 && pointer.chargeTime <= 1.25;
       ctx.beginPath();
       ctx.arc(0, 0, auraR * (1 + chargePct * 0.85), -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * chargePct);
-      ctx.strokeStyle = '#ffd452';
-      ctx.lineWidth = 4;
+      ctx.strokeStyle = isPerfect ? '#ffffff' : '#ffd452';
+      ctx.lineWidth = isPerfect ? 6 : 4;
       ctx.stroke();
+      if (isPerfect) {
+        ctx.beginPath();
+        ctx.arc(0, 0, auraR * 1.95, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(255, 212, 82, 0.72)';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+      }
     }
 
     // Crisp Center Reticle Core
@@ -3489,6 +4032,35 @@
       ctx.lineWidth = sw.lineWidth * alpha + 1;
       ctx.stroke();
       ctx.restore();
+    }
+
+    // 2.5) Frost Field Auras & Boss Shield Tethers
+    for (let i = 0; i < crystals.length; i++) {
+      const c = crystals[i];
+      if (c.dead) continue;
+      if (c.type === 'frost') {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(c.x, c.y, 155, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(122, 232, 255, 0.055)';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(122, 232, 255, 0.28)';
+        ctx.setLineDash([6, 6]);
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+      } else if (c.type === 'bossNode' && activeBoss && !activeBoss.dead) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(activeBoss.x, activeBoss.y);
+        ctx.lineTo(c.x, c.y);
+        ctx.strokeStyle = '#5cf2ff';
+        ctx.globalAlpha = 0.65;
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.restore();
+      }
     }
 
     // 3) Crystals
@@ -3727,6 +4299,7 @@
         <span class="upg-icon">${u.icon}</span>
         <span class="upg-name">${u.name}</span>
         <span class="upg-cost" id="upgcost_${u.id}">✦ 0</span>
+        <div class="upg-progress" id="upgprog_${u.id}"></div>
       `;
       btn.onclick = () => buyUpgrade(u.id);
       btn.onmouseenter = () => {
@@ -3853,13 +4426,20 @@
 
   function toggleSandboxMode() {
     sound.init();
+    activeBoss = null;
+    for (let i = crystals.length - 1; i >= 0; i--) {
+      if (crystals[i].type === 'boss' || crystals[i].type === 'bossNode') crystals.splice(i, 1);
+    }
     if (!isSandbox) {
       savedNormalState = JSON.parse(JSON.stringify(state));
       isSandbox = true;
-      state.shards = 9999999;
+      state.shards = 999999999;
       state.rank = 18;
+      state.zone = 8;
+      state.zoneKills = 0;
+      state.bossRetry = false;
       state.pendingRelics = 0;
-      UPGRADES.forEach(u => state.upgrades[u.id] = Math.min(u.max, 10));
+      UPGRADES.forEach(u => state.upgrades[u.id] = Math.min(u.max, 14));
       state.relics = {
         hyperPulse: 2, stormLord: 2, kaleidoscope: 1, clusterBombs: 2,
         singularity: 2, bladeTempest: 2, ricochet: 2, hunterSwarm: 2,
@@ -3867,7 +4447,7 @@
       };
       novaCharge = 100;
       triggerFever();
-      showBanner('⚡ 极乐无双沙盒已开启 ⚡', '全技能高配拉满 · 随时点击右上角切回正常存档', '#5cf2ff');
+      showBanner('⚡ 极乐无双沙盒已开启 ⚡', 'ZONE 8 高配拉满 · 随时点击右上角切回正常存档', '#5cf2ff');
     } else {
       isSandbox = false;
       if (savedNormalState) state = savedNormalState;
@@ -3875,7 +4455,7 @@
       feverActive = false;
       fever = 0;
       drones.length = 0;
-      showBanner('已切回正常成长存档', '继续你的爽游晋升之路！', '#ffffff');
+      showBanner('已切回正常成长存档', '继续你的晶域攻坚之路！', '#ffffff');
     }
     document.getElementById('sandboxQuickBtn').classList.toggle('active-pill', isSandbox);
     document.getElementById('sandboxQuickBtn').textContent = isSandbox ? '↩ 退出沙盒' : '⚡ 爽玩沙盒';
@@ -3885,7 +4465,7 @@
   }
 
   function doPrestige() {
-    if (isSandbox || state.rank < 8) return;
+    if (isSandbox || state.zone < 5) return;
     const nextPrestige = state.prestige + 1;
     const keepTheme = state.theme;
     const keepShake = state.shakeOn;
@@ -3899,11 +4479,13 @@
     state.numsOn = keepNums;
     state.autoRelicPause = keepAuto;
     state.stats = keepStats;
-    fever = 60;
+    activeBoss = null;
+    fever = 50;
     novaCharge = 100;
     drones.length = 0;
+    spawnWelcomeMandala();
     sound.playSupernova();
-    showBanner(`✦ 超频飞升 ${nextPrestige} 重 ✦`, `永久收益 ×${Math.pow(2.5, nextPrestige).toFixed(1)} · 开局星爆已充能！`, '#ffd452');
+    showBanner(`✦ 超频飞升 ${nextPrestige} 重 ✦`, `永久收益 ×${Math.pow(2.5, nextPrestige).toFixed(1)} · 基础伤害 ×${Math.pow(1.5, nextPrestige).toFixed(1)}！`, '#ffd452');
     document.getElementById('settingsPopover').classList.remove('open');
     updateRelicPendingUI();
     syncHud();
@@ -3934,12 +4516,39 @@
     document.getElementById('rankTitle').textContent = title;
     document.getElementById('rankBarFill').style.width = `${clamp((state.xp / needXp) * 100, 0, 100)}%`;
 
+    // Zone / Boss Progress Bar!
+    const zBox = document.getElementById('zoneBox');
+    const zLabel = document.getElementById('zoneLabel');
+    const zRight = document.getElementById('zoneRight');
+    const zFill = document.getElementById('zoneBarFill');
+    const retryBtn = document.getElementById('bossRetryBtn');
+    if (activeBoss && !activeBoss.dead) {
+      const nodes = countAliveBossNodes();
+      const hpPct = clamp((activeBoss.hp / activeBoss.maxHp) * 100, 0, 100);
+      zBox.classList.add('is-boss');
+      zBox.classList.toggle('boss-urgent', bossTimer <= 6.5);
+      zLabel.textContent = nodes > 0
+        ? `👑 ZONE ${state.zone} 首领 · 护盾 ${nodes} 个`
+        : `💥 ZONE ${state.zone} 首领 · 破防易伤 ×2.2!`;
+      zRight.textContent = `⏳ ${Math.max(0, bossTimer).toFixed(1)}s`;
+      zFill.style.width = `${hpPct}%`;
+      retryBtn.classList.remove('show');
+    } else {
+      const target = getZoneTarget();
+      zBox.classList.remove('is-boss', 'boss-urgent');
+      zLabel.textContent = `🗺️ ZONE ${state.zone} · 晶块强度 ×${getZoneHpScale().toFixed(1)}`;
+      zRight.textContent = state.bossRetry ? '首领待战' : `${Math.min(state.zoneKills, target)} / ${target}`;
+      zFill.style.width = `${clamp((state.zoneKills / target) * 100, 0, 100)}%`;
+      retryBtn.classList.toggle('show', !!state.bossRetry);
+      if (state.bossRetry) retryBtn.textContent = `⚔️ 重新挑战 ZONE ${state.zone} 首领`;
+    }
+
     // Fever bar
     const feverBox = document.getElementById('feverBox');
     feverBox.classList.toggle('is-fever', feverActive);
     document.getElementById('feverBorder').classList.toggle('active', feverActive);
     document.getElementById('feverBarFill').style.width = `${clamp(fever, 0, 100)}%`;
-    document.getElementById('feverLabel').textContent = feverActive ? '🔥 HYPER FEVER ×3 狂热中！' : '⚡ 狂热充能 FEVER';
+    document.getElementById('feverLabel').textContent = feverActive ? '🔥 HYPER FEVER ×2 狂热中！' : '⚡ 狂热充能 FEVER';
     document.getElementById('feverPct').textContent = feverActive ? `${Math.ceil(feverTimeLeft)}s` : `${Math.floor(fever)}%`;
 
     // Combo badge
@@ -3947,7 +4556,7 @@
     if (combo >= 3) {
       cBadge.classList.add('visible');
       document.getElementById('comboNum').textContent = `×${combo}`;
-      document.getElementById('comboMult').textContent = `${(1 + Math.min(4, combo * 0.025)).toFixed(2)}x`;
+      document.getElementById('comboMult').textContent = `${getComboMultiplier().toFixed(2)}x`;
       if (comboPopDirty) {
         comboPopDirty = false;
         cBadge.classList.remove('pop');
@@ -3979,19 +4588,21 @@
       }
     }
 
-    // Upgrade cards
+    // Upgrade cards + live funding progress bar
     let anyAffordable = false;
     for (const u of UPGRADES) {
       const lv = state.upgrades[u.id] || 0;
       const card = document.getElementById('upg_' + u.id);
       const lvEl = document.getElementById('upglv_' + u.id);
       const costEl = document.getElementById('upgcost_' + u.id);
+      const progEl = document.getElementById('upgprog_' + u.id);
       if (!card) continue;
       lvEl.textContent = lv >= u.max ? 'MAX' : `L${lv}`;
       if (lv >= u.max) {
         costEl.textContent = '已满级';
         card.classList.add('maxed');
         card.classList.remove('affordable');
+        if (progEl) progEl.style.width = '100%';
       } else {
         const cost = getUpgradeCost(u);
         costEl.textContent = `✦ ${fmt(cost)}`;
@@ -3999,6 +4610,7 @@
         if (can) anyAffordable = true;
         card.classList.toggle('affordable', can);
         card.classList.remove('maxed');
+        if (progEl) progEl.style.width = `${clamp((state.shards / cost) * 100, 0, 100)}%`;
       }
     }
     document.getElementById('buyAllBtn').classList.toggle('can-buy', anyAffordable);
@@ -4015,15 +4627,15 @@
     document.getElementById('statMaxCombo').textContent = state.stats.maxCombo;
     document.getElementById('statFevers').textContent = state.stats.fevers;
     const relicTotal = Object.values(state.relics).reduce((a, b) => a + b, 0);
-    document.getElementById('statRelics').textContent = relicTotal;
+    document.getElementById('statRelics').textContent = `${relicTotal} (Z${state.stats.maxZone || state.zone})`;
 
     const pBtn = document.getElementById('prestigeBtn');
-    if (!isSandbox && state.rank >= 8) {
+    if (!isSandbox && state.zone >= 5) {
       pBtn.disabled = false;
       pBtn.textContent = `✦ 立即超频飞升（永久收益 ×${Math.pow(2.5, state.prestige + 1).toFixed(1)}）`;
     } else {
       pBtn.disabled = true;
-      pBtn.textContent = isSandbox ? '沙盒模式不可飞升' : `✦ 超频飞升（需达到 LV.8，当前 LV.${state.rank}）`;
+      pBtn.textContent = isSandbox ? '沙盒模式不可飞升' : `✦ 超频飞升（需突破至 ZONE 5，当前 ZONE ${state.zone}）`;
     }
   }
 
@@ -4031,7 +4643,7 @@
    * 14. EVENT LISTENERS (Mouse, Touch, Keyboard)
    * ============================================================ */
   function isOverInteractiveHud(target) {
-    return !!(target && target.closest && target.closest('.glass-pill, .icon-btn, .popover, .relic-pill, .side-actions, #relicModal, #startOverlay'));
+    return !!(target && target.closest && target.closest('.glass-pill, .icon-btn, .popover, .relic-pill, .boss-retry-btn, .side-actions, #relicModal, #startOverlay'));
   }
 
   window.addEventListener('pointermove', (e) => {
@@ -4128,6 +4740,7 @@
   document.getElementById('buyAllBtn').onclick = buyAllAffordable;
   document.getElementById('relicPendingBtn').onclick = openRelicModal;
   document.getElementById('sandboxQuickBtn').onclick = toggleSandboxMode;
+  document.getElementById('bossRetryBtn').onclick = spawnZoneBoss;
 
   document.getElementById('soundBtn').onclick = (e) => {
     sound.enabled = !sound.enabled;
@@ -4172,6 +4785,7 @@
     state = defaultState();
     state.theme = keepTheme;
     displayShards = 0;
+    activeBoss = null;
     combo = 0; fever = 0; feverActive = false; novaCharge = 0;
     drones.length = 0;
     gems.length = 0;
